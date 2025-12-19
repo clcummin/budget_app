@@ -293,6 +293,8 @@ p {
 .legend .pill.computed {
   background: rgba(16, 185, 129, 0.12);
   border-color: rgba(16, 185, 129, 0.4);
+}
+
 .budget-track-grid {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
