@@ -334,7 +334,10 @@ const calculatePay = (state) => {
   const federalTaxAnnual = calculateFederalAnnualTax(annualTaxable, overrideRateDecimal);
   const federalTaxFromPercent = taxableIncome * (coerceNumber(state.federalRate) / 100);
   const w4ExtraAnnual = annualFromState(state, "w4ExtraAnnual", "w4ExtraPerPay", periods);
-  const federalTax = federalTaxAnnual / periods + federalTaxFromPercent + w4ExtraAnnual / periods;
+  const federalFromBrackets = federalTaxAnnual / periods;
+  const federalExtraPercent = federalTaxFromPercent;
+  const federalExtraWithholding = w4ExtraAnnual / periods;
+  const federalTax = federalFromBrackets + federalExtraPercent + federalExtraWithholding;
 
   const stateTax = taxableIncome * (coerceNumber(state.stateRate) / 100);
   const socialSecurityTax =
@@ -394,6 +397,15 @@ const calculatePay = (state) => {
         rent: bundle(rentPerPay),
         gym: bundle(gymPerPay),
         phone: bundle(phonePerPay)
+      },
+      taxBreakdown: {
+        federalBracket: bundle(federalFromBrackets),
+        federalExtraPercent: bundle(federalExtraPercent),
+        federalW4: bundle(federalExtraWithholding),
+        state: bundle(stateTax),
+        socialSecurity: bundle(socialSecurityTax),
+        medicare: bundle(medicareTax),
+        sdi: bundle(sdiTax)
       }
     }
   };
@@ -422,6 +434,20 @@ const renderSummary = (calculated) => {
       el.innerHTML = createValueGroup(values);
     }
   });
+
+  renderSummaryBreakdown(
+    document.querySelector('[data-output="taxesBreakdown"]'),
+    calculated.details.taxBreakdown,
+    [
+      ["federalBracket", "Federal (marginal)"],
+      ["federalExtraPercent", "Federal extra %"],
+      ["federalW4", "Federal W-4 extra"],
+      ["state", "State"],
+      ["socialSecurity", "Social Security"],
+      ["medicare", "Medicare"],
+      ["sdi", "State disability / VDI"]
+    ]
+  );
 };
 
 const renderBreakdownList = (target, breakdown, labelMap) => {
@@ -432,6 +458,30 @@ const renderBreakdownList = (target, breakdown, labelMap) => {
     const item = document.createElement("li");
     item.textContent = `${label}: ${currency(bundle.year)} / yr (${currency(bundle.month)} / mo)`;
     target.appendChild(item);
+  });
+};
+
+const renderSummaryBreakdown = (target, breakdown, entries = []) => {
+  if (!target || !breakdown) return;
+  target.innerHTML = "";
+  entries.forEach(([key, label]) => {
+    const bundle = breakdown[key];
+    if (!bundle) return;
+
+    const row = document.createElement("div");
+    row.className = "breakdown-row";
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "breakdown-label";
+    labelEl.textContent = label;
+
+    const valuesEl = document.createElement("div");
+    valuesEl.className = "values breakdown-values";
+    valuesEl.innerHTML = createValueGroup(bundle);
+
+    row.appendChild(labelEl);
+    row.appendChild(valuesEl);
+    target.appendChild(row);
   });
 };
 

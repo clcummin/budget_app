@@ -359,6 +359,29 @@ p {
   color: var(--muted);
 }
 
+.summary-breakdown {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px;
+  background: rgba(17, 24, 39, 0.55);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.breakdown-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .snapshot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
