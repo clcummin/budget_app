@@ -132,7 +132,7 @@
         <div class="card-header">
           <div>
             <h2>Tax settings</h2>
-            <p>Uses 2025 IRS brackets (single filer), 2024 California single brackets, and current FICA rates. The expected bracket auto-fills—override if needed.</p>
+            <p>Uses 2025 IRS brackets, 2025 California brackets (with the $1M mental health surcharge), and current FICA rates. The expected bracket auto-fills—override if needed.</p>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true">Collapse</button>
@@ -140,6 +140,14 @@
         </div>
         <div class="card-body">
           <div class="grid three">
+            <label class="field entry">
+              <span>CA filing status</span>
+              <select data-model="stateFilingStatus">
+                <option value="single">Single / Married filing separately</option>
+                <option value="married">Married filing jointly / QSS</option>
+                <option value="hoh">Head of household</option>
+              </select>
+            </label>
             <label class="field computed">
               <span>Expected federal bracket</span>
               <div class="calculated-readout" data-output="federalBracket"></div>

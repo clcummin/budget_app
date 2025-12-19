@@ -244,6 +244,15 @@ p {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.field select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 16px;
+}
+
 .field.entry input {
   background: var(--entry);
   border-color: rgba(124, 58, 237, 0.5);

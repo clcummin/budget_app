@@ -1,19 +1,50 @@
 const STORAGE_KEY = "budget-planner-state-v4";
 const SOCIAL_SECURITY_WAGE_BASE = 174600; // 2025 wage base
 const MEDICARE_SURTAX_DEFAULT_THRESHOLD = 200000;
+const MENTAL_HEALTH_SURCHARGE_RATE = 0.01;
+const MENTAL_HEALTH_SURCHARGE_THRESHOLD = 1000000;
 
-const CA_BRACKETS_2024_SINGLE = [
-  { upTo: 10412, rate: 0.01 },
-  { upTo: 24684, rate: 0.02 },
-  { upTo: 38959, rate: 0.04 },
-  { upTo: 54081, rate: 0.06 },
-  { upTo: 68358, rate: 0.08 },
-  { upTo: 349137, rate: 0.093 },
-  { upTo: 418961, rate: 0.103 },
-  { upTo: 698271, rate: 0.113 },
-  { upTo: 1000000, rate: 0.123 },
-  { upTo: Infinity, rate: 0.133 }
-];
+const CA_BRACKETS_2025 = {
+  single: [
+    { upTo: 11079, rate: 0.01 },
+    { upTo: 26275, rate: 0.02 },
+    { upTo: 41471, rate: 0.04 },
+    { upTo: 57645, rate: 0.06 },
+    { upTo: 72841, rate: 0.08 },
+    { upTo: 371994, rate: 0.093 },
+    { upTo: 446392, rate: 0.103 },
+    { upTo: 742953, rate: 0.113 },
+    { upTo: Infinity, rate: 0.123 }
+  ],
+  married: [
+    { upTo: 22158, rate: 0.01 },
+    { upTo: 52550, rate: 0.02 },
+    { upTo: 82942, rate: 0.04 },
+    { upTo: 115290, rate: 0.06 },
+    { upTo: 145682, rate: 0.08 },
+    { upTo: 743988, rate: 0.093 },
+    { upTo: 892784, rate: 0.103 },
+    { upTo: 1485906, rate: 0.113 },
+    { upTo: Infinity, rate: 0.123 }
+  ],
+  hoh: [
+    { upTo: 22173, rate: 0.01 },
+    { upTo: 52576, rate: 0.02 },
+    { upTo: 67994, rate: 0.04 },
+    { upTo: 83639, rate: 0.06 },
+    { upTo: 98382, rate: 0.08 },
+    { upTo: 504013, rate: 0.093 },
+    { upTo: 604816, rate: 0.103 },
+    { upTo: 1010417, rate: 0.113 },
+    { upTo: Infinity, rate: 0.123 }
+  ]
+};
+
+const CA_FILING_LABELS = {
+  single: "Single / MFS",
+  married: "Married / QSS",
+  hoh: "Head of household"
+};
 
 const FEDERAL_BRACKETS_2025_SINGLE = [
   { upTo: 11975, rate: 0.1 },
@@ -125,6 +156,7 @@ const defaultState = {
   federalBracketOverride: null,
   federalRate: 0,
   stateBracketOverride: null,
+  stateFilingStatus: "single",
   stateRate: 0,
   socialSecurityRate: 6.2,
   medicareRate: 1.45,
@@ -171,6 +203,8 @@ const createLineItem = (title = "New entry") => ({
   perPay: 0,
   note: ""
 });
+
+const sanitizeFilingStatus = (value) => (["single", "married", "hoh"].includes(value) ? value : "single");
 
 const sanitizeLineItems = (items = []) =>
   (Array.isArray(items) ? items : [])
@@ -241,6 +275,7 @@ const loadState = () => {
   }
 
   const periods = Math.max(1, coerceNumber(merged.periodsPerYear) || 26);
+  merged.stateFilingStatus = sanitizeFilingStatus(parsed.stateFilingStatus ?? merged.stateFilingStatus);
   merged.afterTaxDeductions = sanitizeLineItems(parsed.afterTaxDeductions);
   if (merged.afterTaxDeductions.length === 0) {
     const legacy = [];
@@ -320,14 +355,19 @@ const findFederalBracket = (annualTaxableIncome) => {
   return { lower: 0, upper: Infinity, rate: 0 };
 };
 
-const calculateStateAnnualTax = (annualTaxableIncome, flatRateOverride) => {
+const getStateBracketsForStatus = (status) => CA_BRACKETS_2025[sanitizeFilingStatus(status)] ?? CA_BRACKETS_2025.single;
+
+const calculateStateAnnualTax = (annualTaxableIncome, flatRateOverride, filingStatus) => {
   if (Number.isFinite(flatRateOverride) && flatRateOverride > 0) {
-    return annualTaxableIncome * flatRateOverride;
+    const base = annualTaxableIncome * flatRateOverride;
+    const surcharge = Math.max(0, annualTaxableIncome - MENTAL_HEALTH_SURCHARGE_THRESHOLD) * MENTAL_HEALTH_SURCHARGE_RATE;
+    return { base, surcharge, total: base + surcharge };
   }
   let tax = 0;
   let lowerBound = 0;
 
-  for (const bracket of CA_BRACKETS_2024_SINGLE) {
+  const brackets = getStateBracketsForStatus(filingStatus);
+  for (const bracket of brackets) {
     const upper = bracket.upTo;
     const rate = bracket.rate;
     const taxableInBracket = Math.min(annualTaxableIncome, upper) - lowerBound;
@@ -337,13 +377,15 @@ const calculateStateAnnualTax = (annualTaxableIncome, flatRateOverride) => {
     lowerBound = upper;
   }
 
-  return tax;
+  const surcharge = Math.max(0, annualTaxableIncome - MENTAL_HEALTH_SURCHARGE_THRESHOLD) * MENTAL_HEALTH_SURCHARGE_RATE;
+  return { base: tax, surcharge, total: tax + surcharge };
 };
 
-const findStateBracket = (annualTaxableIncome) => {
+const findStateBracket = (annualTaxableIncome, filingStatus) => {
   let lowerBound = 0;
 
-  for (const bracket of CA_BRACKETS_2024_SINGLE) {
+  const brackets = getStateBracketsForStatus(filingStatus);
+  for (const bracket of brackets) {
     const upper = bracket.upTo;
     if (annualTaxableIncome <= upper) {
       return { lower: lowerBound, upper, rate: bracket.rate };
@@ -436,14 +478,17 @@ const calculatePay = (state) => {
   const federalExtraWithholding = w4ExtraAnnual / periods;
   const federalTax = federalFromBrackets + federalExtraPercent + federalExtraWithholding;
 
+  const filingStatus = sanitizeFilingStatus(state.stateFilingStatus);
   const stateBracketOverrideRate = coerceNumber(state.stateBracketOverride);
   const stateOverrideActive = Number.isFinite(stateBracketOverrideRate) && stateBracketOverrideRate > 0;
-  const expectedStateBracket = findStateBracket(annualTaxable);
+  const expectedStateBracket = findStateBracket(annualTaxable, filingStatus);
   const stateOverrideDecimal = stateOverrideActive ? stateBracketOverrideRate / 100 : null;
   const usedStateRate = (stateOverrideDecimal ?? expectedStateBracket.rate) * 100;
-  const stateTaxAnnual = calculateStateAnnualTax(annualTaxable, stateOverrideDecimal);
+  const stateTaxAnnuals = calculateStateAnnualTax(annualTaxable, stateOverrideDecimal, filingStatus);
   const stateExtraAnnual = annualTaxable * (coerceNumber(state.stateRate) / 100);
-  const stateTax = (stateTaxAnnual + stateExtraAnnual) / periods;
+  const stateTaxBase = stateTaxAnnuals.base / periods;
+  const stateMentalHealth = stateTaxAnnuals.surcharge / periods;
+  const stateTax = (stateTaxAnnuals.total + stateExtraAnnual) / periods;
 
   const socialSecurityTax =
     (Math.min(annualTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) / periods;
@@ -481,6 +526,7 @@ const calculatePay = (state) => {
       usedFederalRate,
       expectedStateBracket,
       usedStateRate,
+      stateFilingStatus: filingStatus,
       effectiveFederalRate:
         annualTaxable > 0 ? (calculateFederalAnnualTax(annualTaxable, overrideRateDecimal) / annualTaxable) * 100 : 0,
       pretaxBreakdown: {
@@ -500,6 +546,8 @@ const calculatePay = (state) => {
         federalBracket: bundle(federalFromBrackets),
         federalExtraPercent: bundle(federalExtraPercent),
         federalW4: bundle(federalExtraWithholding),
+        stateBase: bundle(stateTaxBase),
+        stateMentalHealth: bundle(stateMentalHealth),
         state: bundle(stateTax),
         socialSecurity: bundle(socialSecurityTax),
         medicare: bundle(medicareTax),
@@ -541,6 +589,8 @@ const renderSummary = (calculated) => {
       ["federalBracket", "Federal (marginal)"],
       ["federalExtraPercent", "Federal extra %"],
       ["federalW4", "Federal W-4 extra"],
+      ["stateBase", "CA base tax"],
+      ["stateMentalHealth", "CA mental health surcharge"],
       ["state", "State"],
       ["socialSecurity", "Social Security"],
       ["medicare", "Medicare"],
@@ -590,7 +640,14 @@ const renderSummaryBreakdown = (target, breakdown, entries = []) => {
 
 const renderSnapshot = (calculated) => {
   const { details } = calculated;
-  const { expectedFederalBracket, usedFederalRate, effectiveFederalRate, expectedStateBracket, usedStateRate } = details;
+  const {
+    expectedFederalBracket,
+    usedFederalRate,
+    effectiveFederalRate,
+    expectedStateBracket,
+    usedStateRate,
+    stateFilingStatus
+  } = details;
   const bracketLabel = `${usedFederalRate.toFixed(1)}% marginal (${rangeLabel(
     expectedFederalBracket.lower,
     expectedFederalBracket.upper
@@ -598,7 +655,7 @@ const renderSnapshot = (calculated) => {
   const stateBracketLabel = `${usedStateRate.toFixed(1)}% marginal (${rangeLabel(
     expectedStateBracket.lower,
     expectedStateBracket.upper
-  )})`;
+  )}) (${CA_FILING_LABELS[sanitizeFilingStatus(stateFilingStatus)]})`;
 
   const bracketField = document.querySelector('[data-output="federalBracket"]');
   if (bracketField) bracketField.textContent = bracketLabel;
