@@ -25,196 +25,241 @@
   </header>
 
   <main class="layout">
-    <section class="card span-2">
+    <section class="card span-2" data-collapsible="income">
       <div class="card-header">
-        <h2>Income &amp; baselines</h2>
-        <p>Start with your per-paycheck income and the annual standard deduction.</p>
+        <div>
+          <h2>Income &amp; baselines</h2>
+          <p>Start with your per-paycheck income and the annual standard deduction.</p>
+        </div>
+        <div class="card-tools">
+          <button class="ghost collapse-toggle" data-collapsible-toggle="income" aria-expanded="true">Collapse</button>
+        </div>
       </div>
-      <div class="grid two">
-        <label class="field">
-          <span>Salary (gross, per paycheck)</span>
-          <input type="number" data-model="salaryPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Pay periods per year</span>
-          <input type="number" data-model="periodsPerYear" min="1" max="52" />
-        </label>
-        <label class="field">
-          <span>Standard deduction (annual)</span>
-          <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Extra withholding per paycheck (W4)</span>
-          <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" />
-        </label>
+      <div class="card-body">
+        <div class="grid two">
+          <label class="field">
+            <span>Salary (gross, per paycheck)</span>
+            <input type="number" data-model="salaryPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Pay periods per year</span>
+            <input type="number" data-model="periodsPerYear" min="1" max="52" />
+          </label>
+          <label class="field">
+            <span>Standard deduction (annual)</span>
+            <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Extra withholding per paycheck (W4)</span>
+            <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" />
+          </label>
+        </div>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-collapsible="pretax">
       <div class="card-header">
-        <h2>Pre-tax deductions</h2>
-        <p>Amounts pulled out before taxes are calculated.</p>
+        <div>
+          <h2>Pre-tax deductions</h2>
+          <p>Amounts pulled out before taxes are calculated.</p>
+        </div>
+        <div class="card-tools">
+          <button class="ghost collapse-toggle" data-collapsible-toggle="pretax" aria-expanded="true">Collapse</button>
+        </div>
       </div>
-      <div class="grid two">
-        <label class="field">
-          <span>401k contribution (%)</span>
-          <input type="number" data-model="k401Percent" step="0.1" />
-        </label>
-        <label class="field">
-          <span>HSA contribution (per pay)</span>
-          <input type="number" data-model="hsaPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Dental (per pay)</span>
-          <input type="number" data-model="dentalPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Medical (per pay)</span>
-          <input type="number" data-model="medicalPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Other pre-tax (per pay)</span>
-          <input type="number" data-model="otherPretaxPerPay" inputmode="decimal" />
-        </label>
+      <div class="card-body">
+        <div class="grid two">
+          <label class="field">
+            <span>401k contribution (%)</span>
+            <input type="number" data-model="k401Percent" step="0.1" />
+          </label>
+          <label class="field">
+            <span>HSA contribution (per pay)</span>
+            <input type="number" data-model="hsaPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Dental (per pay)</span>
+            <input type="number" data-model="dentalPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Medical (per pay)</span>
+            <input type="number" data-model="medicalPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Other pre-tax (per pay)</span>
+            <input type="number" data-model="otherPretaxPerPay" inputmode="decimal" />
+          </label>
+        </div>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-collapsible="taxes">
       <div class="card-header">
-        <h2>Tax settings</h2>
-        <p>Uses 2024 IRS brackets (single filer) and current FICA rates. Add extra withholding to mirror your paystub.</p>
+        <div>
+          <h2>Tax settings</h2>
+          <p>Uses 2024 IRS brackets (single filer) and current FICA rates. Add extra withholding to mirror your paystub.</p>
+        </div>
+        <div class="card-tools">
+          <button class="ghost collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true">Collapse</button>
+        </div>
       </div>
-      <div class="grid two">
-        <label class="field">
-          <span>Extra federal withholding (%)</span>
-          <input type="number" data-model="federalRate" step="0.1" />
-        </label>
-        <label class="field">
-          <span>State tax rate (%)</span>
-          <input type="number" data-model="stateRate" step="0.1" />
-        </label>
-        <label class="field">
-          <span>Social Security (%)</span>
-          <input type="number" data-model="socialSecurityRate" step="0.01" />
-        </label>
-        <label class="field">
-          <span>Medicare (%)</span>
-          <input type="number" data-model="medicareRate" step="0.01" />
-        </label>
-        <label class="field">
-          <span>State Disability / VDI (%)</span>
-          <input type="number" data-model="sdiRate" step="0.01" />
-        </label>
+      <div class="card-body">
+        <div class="grid two">
+          <label class="field">
+            <span>Extra federal withholding (%)</span>
+            <input type="number" data-model="federalRate" step="0.1" />
+          </label>
+          <label class="field">
+            <span>State tax rate (%)</span>
+            <input type="number" data-model="stateRate" step="0.1" />
+          </label>
+          <label class="field">
+            <span>Social Security (%)</span>
+            <input type="number" data-model="socialSecurityRate" step="0.01" />
+          </label>
+          <label class="field">
+            <span>Medicare (%)</span>
+            <input type="number" data-model="medicareRate" step="0.01" />
+          </label>
+          <label class="field">
+            <span>State Disability / VDI (%)</span>
+            <input type="number" data-model="sdiRate" step="0.01" />
+          </label>
+        </div>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-collapsible="posttax">
       <div class="card-header">
-        <h2>After-tax deductions</h2>
-        <p>Items withheld after taxes (e.g., LTD and ESPP).</p>
+        <div>
+          <h2>After-tax deductions</h2>
+          <p>Items withheld after taxes (e.g., LTD and ESPP).</p>
+        </div>
+        <div class="card-tools">
+          <button class="ghost collapse-toggle" data-collapsible-toggle="posttax" aria-expanded="true">Collapse</button>
+        </div>
       </div>
-      <div class="grid two">
-        <label class="field">
-          <span>LTD (per pay)</span>
-          <input type="number" data-model="ltdPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>ESPP contribution (%)</span>
-          <input type="number" data-model="esppPercent" step="0.1" />
-        </label>
+      <div class="card-body">
+        <div class="grid two">
+          <label class="field">
+            <span>LTD (per pay)</span>
+            <input type="number" data-model="ltdPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>ESPP contribution (%)</span>
+            <input type="number" data-model="esppPercent" step="0.1" />
+          </label>
+        </div>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-collapsible="additional">
       <div class="card-header">
-        <h2>Additional income</h2>
-        <p>Credits or reimbursements that get added to your paycheck.</p>
+        <div>
+          <h2>Additional income</h2>
+          <p>Credits or reimbursements that get added to your paycheck.</p>
+        </div>
+        <div class="card-tools">
+          <button class="ghost collapse-toggle" data-collapsible-toggle="additional" aria-expanded="true">Collapse</button>
+        </div>
       </div>
-      <div class="grid two">
-        <label class="field">
-          <span>Rent stipend (per pay)</span>
-          <input type="number" data-model="rentPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Gym membership credit (per pay)</span>
-          <input type="number" data-model="gymPerPay" inputmode="decimal" />
-        </label>
-        <label class="field">
-          <span>Phone credit (per pay)</span>
-          <input type="number" data-model="phonePerPay" inputmode="decimal" />
-        </label>
+      <div class="card-body">
+        <div class="grid two">
+          <label class="field">
+            <span>Rent stipend (per pay)</span>
+            <input type="number" data-model="rentPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Gym membership credit (per pay)</span>
+            <input type="number" data-model="gymPerPay" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Phone credit (per pay)</span>
+            <input type="number" data-model="phonePerPay" inputmode="decimal" />
+          </label>
+        </div>
       </div>
     </section>
 
-    <section class="card span-2">
+    <section class="card span-2" data-collapsible="summary">
       <div class="card-header">
         <div>
           <h2>Paycheck summary</h2>
           <p>We calculate per-pay, monthly, and annual totals from your inputs.</p>
         </div>
-        <div class="legend">
-          <span class="pill">Per pay</span>
-          <span class="pill">Monthly</span>
-          <span class="pill">Annual</span>
+        <div class="card-tools">
+          <div class="legend">
+            <span class="pill">Per pay</span>
+            <span class="pill">Monthly</span>
+            <span class="pill">Annual</span>
+          </div>
+          <button class="ghost collapse-toggle" data-collapsible-toggle="summary" aria-expanded="true">Collapse</button>
         </div>
       </div>
-      <div class="summary">
-        <div class="summary-row">
-          <div class="label">Salary (gross)</div>
-          <div class="values" data-output="gross"></div>
-        </div>
-        <div class="summary-row">
-          <div class="label">Pre-tax deductions</div>
-          <div class="values" data-output="pretax"></div>
-        </div>
-        <div class="summary-row">
-          <div class="label">Taxable income</div>
-          <div class="values" data-output="taxable"></div>
-        </div>
-        <div class="summary-row">
-          <div class="label">Taxes withheld</div>
-          <div class="values" data-output="taxes"></div>
-        </div>
-        <div class="summary-row">
-          <div class="label">After-tax deductions</div>
-          <div class="values" data-output="posttax"></div>
-        </div>
-        <div class="summary-row">
-          <div class="label">Additional income</div>
-          <div class="values" data-output="additionalIncome"></div>
-        </div>
-        <div class="summary-row total">
-          <div class="label">Net pay</div>
-          <div class="values" data-output="net"></div>
+      <div class="card-body">
+        <div class="summary">
+          <div class="summary-row">
+            <div class="label">Salary (gross)</div>
+            <div class="values" data-output="gross"></div>
+          </div>
+          <div class="summary-row">
+            <div class="label">Pre-tax deductions</div>
+            <div class="values" data-output="pretax"></div>
+          </div>
+          <div class="summary-row">
+            <div class="label">Taxable income</div>
+            <div class="values" data-output="taxable"></div>
+          </div>
+          <div class="summary-row">
+            <div class="label">Taxes withheld</div>
+            <div class="values" data-output="taxes"></div>
+          </div>
+          <div class="summary-row">
+            <div class="label">After-tax deductions</div>
+            <div class="values" data-output="posttax"></div>
+          </div>
+          <div class="summary-row">
+            <div class="label">Additional income</div>
+            <div class="values" data-output="additionalIncome"></div>
+          </div>
+          <div class="summary-row total">
+            <div class="label">Net pay</div>
+            <div class="values" data-output="net"></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="card span-2">
+    <section class="card span-2" data-collapsible="budget">
       <div class="card-header">
         <div>
           <h2>Budget buckets</h2>
           <p>Distribute your monthly net pay across the categories you track. Build sections with nested entries, collapse them to see rollups, and drag items around with the move and indent controls.</p>
         </div>
-        <div class="inline-actions">
-          <button id="add-entry-button" class="ghost">Add entry</button>
-          <button id="add-section-button" class="ghost">Add section</button>
-          <button id="rebalance-button" class="ghost">Rebalance to 100%</button>
+        <div class="card-tools">
+          <div class="inline-actions">
+            <button id="add-entry-button" class="ghost">Add entry</button>
+            <button id="add-section-button" class="ghost">Add section</button>
+            <button id="rebalance-button" class="ghost">Rebalance to 100%</button>
+          </div>
+          <button class="ghost collapse-toggle" data-collapsible-toggle="budget" aria-expanded="true">Collapse</button>
         </div>
       </div>
-      <div class="budget-table">
-        <div class="budget-head">
-          <span>Section / category</span>
-          <span>Percent of net</span>
-          <span>Monthly amount</span>
-          <span>Notes &amp; actions</span>
-        </div>
-        <div id="budget-tree" class="budget-tree"></div>
-        <div class="budget-foot">
-          <span>Total</span>
-          <span id="budget-percent-total">0%</span>
-          <span id="budget-amount-total">$0</span>
-          <span id="unused-money"></span>
+      <div class="card-body">
+        <div class="budget-table">
+          <div class="budget-head">
+            <span>Section / category</span>
+            <span>Percent of net</span>
+            <span>Monthly amount</span>
+            <span>Notes &amp; actions</span>
+          </div>
+          <div id="budget-tree" class="budget-tree"></div>
+          <div class="budget-foot">
+            <span>Total</span>
+            <span id="budget-percent-total">0%</span>
+            <span id="budget-amount-total">$0</span>
+            <span id="unused-money"></span>
+          </div>
         </div>
       </div>
     </section>
