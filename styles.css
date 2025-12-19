@@ -515,7 +515,7 @@ p {
 .simple-table-header,
 .simple-row {
   display: grid;
-  grid-template-columns: 1fr 0.6fr 0.8fr 1fr 120px;
+  grid-template-columns: minmax(190px, 1fr) minmax(120px, 0.6fr) minmax(150px, 0.8fr) 1fr 120px;
   gap: 10px;
   align-items: center;
 }
@@ -545,6 +545,7 @@ p {
   background: var(--panel-2);
   padding: 8px 10px;
   color: var(--text);
+  min-width: 0;
 }
 
 .simple-row__annual {

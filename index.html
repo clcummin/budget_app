@@ -45,12 +45,13 @@
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="income" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-income"></div>
         </div>
         <div class="card-body">
           <div class="grid three">
             <label class="field entry">
               <span>Salary (gross, annual)</span>
-              <input type="number" data-model="salaryAnnual" inputmode="decimal" />
+              <input type="number" data-model="salaryAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field entry">
               <span>Pay periods per year</span>
@@ -58,19 +59,19 @@
             </label>
             <label class="field computed">
               <span>Salary (gross, per paycheck)</span>
-              <input type="number" data-model="salaryPerPay" inputmode="decimal" readonly />
+              <input type="number" data-model="salaryPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
             <label class="field entry">
               <span>Standard deduction (annual)</span>
-              <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" />
+              <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field entry">
               <span>Extra withholding (annual, W4)</span>
-              <input type="number" data-model="w4ExtraAnnual" inputmode="decimal" />
+              <input type="number" data-model="w4ExtraAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
               <span>Extra withholding (per paycheck)</span>
-              <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" readonly />
+              <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
           </div>
         </div>
@@ -85,6 +86,7 @@
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="pretax" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-pretax"></div>
         </div>
         <div class="card-body">
           <div class="grid three">
@@ -94,35 +96,35 @@
             </label>
             <label class="field entry">
               <span>HSA contribution (annual)</span>
-              <input type="number" data-model="hsaAnnual" inputmode="decimal" />
+              <input type="number" data-model="hsaAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
               <span>HSA contribution (per pay)</span>
-              <input type="number" data-model="hsaPerPay" inputmode="decimal" readonly />
+              <input type="number" data-model="hsaPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
             <label class="field entry">
               <span>Dental (annual)</span>
-              <input type="number" data-model="dentalAnnual" inputmode="decimal" />
+              <input type="number" data-model="dentalAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
               <span>Dental (per pay)</span>
-              <input type="number" data-model="dentalPerPay" inputmode="decimal" readonly />
+              <input type="number" data-model="dentalPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
             <label class="field entry">
               <span>Medical (annual)</span>
-              <input type="number" data-model="medicalAnnual" inputmode="decimal" />
+              <input type="number" data-model="medicalAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
               <span>Medical (per pay)</span>
-              <input type="number" data-model="medicalPerPay" inputmode="decimal" readonly />
+              <input type="number" data-model="medicalPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
             <label class="field entry">
               <span>Other pre-tax (annual)</span>
-              <input type="number" data-model="otherPretaxAnnual" inputmode="decimal" />
+              <input type="number" data-model="otherPretaxAnnual" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
               <span>Other pre-tax (per pay)</span>
-              <input type="number" data-model="otherPretaxPerPay" inputmode="decimal" readonly />
+              <input type="number" data-model="otherPretaxPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
           </div>
         </div>
@@ -137,6 +139,7 @@
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-taxes"></div>
         </div>
         <div class="card-body">
           <div class="grid three">
@@ -182,7 +185,7 @@
             </label>
             <label class="field entry">
               <span>Medicare surtax threshold (annual)</span>
-              <input type="number" data-model="medicareSurtaxThreshold" inputmode="decimal" />
+              <input type="number" data-model="medicareSurtaxThreshold" inputmode="decimal" step="0.01" />
             </label>
             <label class="field entry">
               <span>Social Security (%)</span>
@@ -205,6 +208,7 @@
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="posttax" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-posttax"></div>
         </div>
         <div class="card-body">
           <div class="simple-table-header">
@@ -230,6 +234,7 @@
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="additional" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-additional"></div>
         </div>
         <div class="card-body">
           <div class="simple-table-header">
@@ -242,56 +247,6 @@
           <div id="additional-income-list" class="simple-table"></div>
           <div class="inline-actions">
             <button id="add-additional-income" class="ghost">+ Add income item</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="card span-2" data-collapsible="snapshot">
-        <div class="card-header">
-          <div>
-            <h2>Tax &amp; contributions snapshot</h2>
-            <p>See the expected bracket, effective rates, and annual totals for retirement and medical contributions.</p>
-          </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="snapshot" aria-expanded="true">Collapse</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="snapshot-grid">
-            <div class="snapshot-tile computed">
-              <p class="tile-label">Expected federal bracket</p>
-              <p class="tile-value" data-output="federalBracketLabel"></p>
-              <p class="tile-subtext" data-output="effectiveFederal"></p>
-            </div>
-            <div class="snapshot-tile computed">
-              <p class="tile-label">Expected CA bracket</p>
-              <p class="tile-value" data-output="stateBracketLabel"></p>
-              <p class="tile-subtext">Includes 2024 single filer brackets</p>
-            </div>
-            <div class="snapshot-tile computed">
-              <p class="tile-label">Pre-tax contributions</p>
-              <p class="tile-value" data-output="pretaxTotal"></p>
-              <details>
-                <summary>View breakdown</summary>
-                <ul class="tile-list" data-output="pretaxBreakdown"></ul>
-              </details>
-            </div>
-            <div class="snapshot-tile computed">
-              <p class="tile-label">Post-tax deductions</p>
-              <p class="tile-value" data-output="posttaxTotal"></p>
-              <details>
-                <summary>View breakdown</summary>
-                <ul class="tile-list" data-output="posttaxBreakdown"></ul>
-              </details>
-            </div>
-            <div class="snapshot-tile computed">
-              <p class="tile-label">Additional income</p>
-              <p class="tile-value" data-output="additionalTotal"></p>
-              <details>
-                <summary>View breakdown</summary>
-                <ul class="tile-list" data-output="additionalBreakdown"></ul>
-              </details>
-            </div>
           </div>
         </div>
       </section>

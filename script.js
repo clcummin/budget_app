@@ -172,8 +172,7 @@ const defaultState = {
     taxes: false,
     posttax: false,
     additional: false,
-    snapshot: false,
-    summary: false,
+    summary: true,
     budget: false,
     "bucket-overview": false
   }
@@ -189,6 +188,8 @@ const currency = (value) => {
 };
 
 const percentDisplay = (value) => `${value.toFixed(1)}%`;
+
+const isBlank = (value) => value === "" || value === null || value === undefined;
 
 const coerceNumber = (value) => {
   const parsed = typeof value === "string" ? parseFloat(value) : value;
@@ -420,15 +421,23 @@ const recalcDerivedFields = (state) => {
   ];
 
   pairs.forEach(([annualKey, perPayKey]) => {
-    const annualValue = coerceNumber(state[annualKey]);
-    const perPayValue = coerceNumber(state[perPayKey]);
+    const annualRaw = state[annualKey];
+    const perPayRaw = state[perPayKey];
+    const annualValue = coerceNumber(annualRaw);
+    const perPayValue = coerceNumber(perPayRaw);
+    const hasAnnual = !isBlank(annualRaw);
+    const hasPerPay = !isBlank(perPayRaw);
+
     if (annualValue > 0) {
       state[perPayKey] = Math.round((annualValue / periods) * 100) / 100;
     } else if (perPayValue > 0) {
       state[annualKey] = Math.round(perPayValue * periods * 100) / 100;
+    } else if (hasAnnual || hasPerPay) {
+      state[annualKey] = hasAnnual ? annualValue : "";
+      state[perPayKey] = hasPerPay ? perPayValue : "";
     } else {
-      state[annualKey] = 0;
-      state[perPayKey] = 0;
+      state[annualKey] = "";
+      state[perPayKey] = "";
     }
   });
 };
@@ -600,20 +609,6 @@ const renderSummary = (calculated) => {
   );
 };
 
-const renderBreakdownList = (target, breakdown, labelMap) => {
-  if (!target) return;
-  target.innerHTML = "";
-  const entries = Array.isArray(breakdown)
-    ? breakdown.map((entry) => [entry.label, entry.bundle])
-    : Object.entries(breakdown).map(([key, bundle]) => [labelMap?.[key] ?? key, bundle]);
-
-  entries.forEach(([label, bundle]) => {
-    const item = document.createElement("li");
-    item.textContent = `${label}: ${currency(bundle.year)} / yr (${currency(bundle.month)} / mo)`;
-    target.appendChild(item);
-  });
-};
-
 const renderSummaryBreakdown = (target, breakdown, entries = []) => {
   if (!target || !breakdown) return;
   target.innerHTML = "";
@@ -638,12 +633,11 @@ const renderSummaryBreakdown = (target, breakdown, entries = []) => {
   });
 };
 
-const renderSnapshot = (calculated) => {
+const renderTaxFields = (calculated) => {
   const { details } = calculated;
   const {
     expectedFederalBracket,
     usedFederalRate,
-    effectiveFederalRate,
     expectedStateBracket,
     usedStateRate,
     stateFilingStatus
@@ -659,42 +653,8 @@ const renderSnapshot = (calculated) => {
 
   const bracketField = document.querySelector('[data-output="federalBracket"]');
   if (bracketField) bracketField.textContent = bracketLabel;
-  const bracketTile = document.querySelector('[data-output="federalBracketLabel"]');
-  if (bracketTile) bracketTile.textContent = bracketLabel;
-  const stateBracketTile = document.querySelector('[data-output="stateBracketLabel"]');
-  if (stateBracketTile) stateBracketTile.textContent = stateBracketLabel;
   const stateBracketField = document.querySelector('[data-output="stateBracket"]');
   if (stateBracketField) stateBracketField.textContent = stateBracketLabel;
-
-  const effectiveField = document.querySelector('[data-output="effectiveFederal"]');
-  if (effectiveField) effectiveField.textContent = `Effective: ${effectiveFederalRate.toFixed(1)}% of taxable income`;
-
-  const pretaxTotal = document.querySelector('[data-output="pretaxTotal"]');
-  if (pretaxTotal) pretaxTotal.textContent = `${currency(calculated.pretax.year)} / yr`;
-  const posttaxTotal = document.querySelector('[data-output="posttaxTotal"]');
-  if (posttaxTotal) posttaxTotal.textContent = `${currency(calculated.posttax.year)} / yr`;
-  const additionalTotal = document.querySelector('[data-output="additionalTotal"]');
-  if (additionalTotal) additionalTotal.textContent = `${currency(calculated.additionalIncome.year)} / yr`;
-
-  renderBreakdownList(
-    document.querySelector('[data-output="pretaxBreakdown"]'),
-    details.pretaxBreakdown,
-    {
-      retirement401k: "Retirement (401k)",
-      hsa: "HSA",
-      dental: "Dental",
-      medical: "Medical",
-      other: "Other"
-    }
-  );
-  renderBreakdownList(
-    document.querySelector('[data-output="posttaxBreakdown"]'),
-    details.postTaxBreakdown.items ?? []
-  );
-  renderBreakdownList(
-    document.querySelector('[data-output="additionalBreakdown"]'),
-    details.additionalBreakdown.items ?? []
-  );
 };
 
 const renderLineItemList = (items, containerId, periods, emptyText) => {
@@ -718,6 +678,7 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     const title = document.createElement("input");
     title.type = "text";
     title.value = item.title ?? "";
+    title.placeholder = "Label";
     title.dataset.field = "title";
 
     const perPay = document.createElement("input");
@@ -1047,12 +1008,62 @@ const renderCharts = (state, calculations, totals, targets) => {
   renderBucketTargets(state, calculations, targets);
 };
 
-const updatePeekBadges = (calculations, totals, targets) => {
+const updatePeekBadges = (state, calculations, totals, targets) => {
+  const { details } = calculations;
+
+  const incomePeek = document.getElementById("peek-income");
+  if (incomePeek) {
+    incomePeek.innerHTML = `
+      <span>Per paycheck: ${currency(calculations.gross.pay)}</span>
+      <span>Annual: ${currency(calculations.gross.year)}</span>
+    `;
+  }
+
+  const pretaxPeek = document.getElementById("peek-pretax");
+  if (pretaxPeek) {
+    pretaxPeek.innerHTML = `
+      <span>Per paycheck: ${currency(calculations.pretax.pay)}</span>
+      <span>Annual: ${currency(calculations.pretax.year)}</span>
+    `;
+  }
+
+  const posttaxPeek = document.getElementById("peek-posttax");
+  if (posttaxPeek) {
+    posttaxPeek.innerHTML = `
+      <span>Per paycheck: ${currency(calculations.posttax.pay)}</span>
+      <span>Annual: ${currency(calculations.posttax.year)}</span>
+      <span>${state.afterTaxDeductions.length || 0} deduction${state.afterTaxDeductions.length === 1 ? "" : "s"}</span>
+    `;
+  }
+
+  const taxesPeek = document.getElementById("peek-taxes");
+  if (taxesPeek) {
+    const filingLabel = CA_FILING_LABELS[sanitizeFilingStatus(details.stateFilingStatus)];
+    const federalLabel = `${details.usedFederalRate.toFixed(1)}% fed (${rangeLabel(
+      details.expectedFederalBracket.lower,
+      details.expectedFederalBracket.upper
+    )})`;
+    const stateLabel = `${details.usedStateRate.toFixed(1)}% CA (${filingLabel})`;
+    taxesPeek.innerHTML = `
+      <span>${federalLabel}</span>
+      <span>${stateLabel}</span>
+      <span>Withheld: ${currency(calculations.taxes.pay)} / pay · ${currency(calculations.taxes.year)} / yr</span>
+    `;
+  }
+
+  const additionalPeek = document.getElementById("peek-additional");
+  if (additionalPeek) {
+    additionalPeek.innerHTML = `
+      <span>Total: ${currency(calculations.additionalIncome.pay)} / pay · ${currency(calculations.additionalIncome.year)} / yr</span>
+      <span>${state.additionalIncomeItems.length || 0} income item${state.additionalIncomeItems.length === 1 ? "" : "s"}</span>
+    `;
+  }
+
   const summaryPeek = document.getElementById("peek-summary");
   if (summaryPeek) {
     summaryPeek.innerHTML = `
-      <span>Net: ${currency(calculations.net.month)} / mo</span>
-      <span>Gross: ${currency(calculations.gross.month)} / mo</span>
+      <span>Gross: ${currency(calculations.gross.month)} / mo · ${currency(calculations.gross.year)} / yr</span>
+      <span>Net: ${currency(calculations.net.month)} / mo · ${currency(calculations.net.year)} / yr</span>
     `;
   }
 
@@ -1165,6 +1176,7 @@ const renderBudgetTree = (state, netMonthly, config) => {
       const targetInput = document.createElement("input");
       targetInput.type = "number";
       targetInput.step = "0.1";
+      targetInput.inputMode = "decimal";
       targetInput.dataset.field = "targetPercent";
       targetInput.value = coerceNumber(node.targetPercent).toFixed(1);
       targetCell.appendChild(targetInput);
@@ -1179,6 +1191,7 @@ const renderBudgetTree = (state, netMonthly, config) => {
       const percentInput = document.createElement("input");
       percentInput.type = "number";
       percentInput.step = "0.1";
+      percentInput.inputMode = "decimal";
       percentInput.dataset.field = "percent";
       percentInput.value = coerceNumber(node.percent).toFixed(1);
       percentCell.appendChild(percentInput);
@@ -1195,7 +1208,8 @@ const renderBudgetTree = (state, netMonthly, config) => {
     if (node.type === "item") {
       const amountInput = document.createElement("input");
       amountInput.type = "number";
-      amountInput.step = "1";
+      amountInput.step = "0.01";
+      amountInput.inputMode = "decimal";
       amountInput.dataset.field = "amount";
       amountInput.value = totals.amount.toFixed(2);
       amountCell.appendChild(amountInput);
@@ -1314,7 +1328,7 @@ const refreshBudget = (state) => {
   renderLineItemList(state.afterTaxDeductions, "after-tax-list", periods, "Add an after-tax deduction to get started.");
   renderLineItemList(state.additionalIncomeItems, "additional-income-list", periods, "Add income credits or stipends.");
   renderSummary(calculations);
-  renderSnapshot(calculations);
+  renderTaxFields(calculations);
   renderBudgetTree(state, netMonthly, {
     treeId: "budget-tree",
     percentTotalId: "budget-percent-total",
@@ -1324,7 +1338,7 @@ const refreshBudget = (state) => {
   const totals = calculateTreeTotals(state.budgetTree, netMonthly);
   const targets = calculateSectionTargets(state.budgetTree, netMonthly);
   renderCharts(state, calculations, totals, targets);
-  updatePeekBadges(calculations, totals, targets);
+  updatePeekBadges(state, calculations, totals, targets);
 };
 
 const attachModelInputs = (state) => {
@@ -1339,7 +1353,7 @@ const attachModelInputs = (state) => {
     input.addEventListener("input", () => {
       const raw = input.value;
       const numeric = coerceNumber(raw);
-      state[key] = raw === "" ? 0 : numeric;
+      state[key] = raw === "" ? "" : numeric;
       recalcDerivedFields(state);
       saveState(state);
       updateInputsFromState(state);
