@@ -188,6 +188,12 @@ p {
   font-size: 13px;
 }
 
+.inline-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .summary {
   position: relative;
   z-index: 1;
@@ -238,6 +244,10 @@ p {
   overflow: hidden;
 }
 
+.budget-tree {
+  border-top: 1px solid var(--border);
+}
+
 .budget-head,
 .budget-foot {
   display: grid;
@@ -280,6 +290,84 @@ p {
 
 .budget-foot span:last-child {
   color: var(--muted);
+}
+
+.tree-row {
+  align-items: flex-start;
+}
+
+.label-stack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: calc(var(--depth) * 16px);
+}
+
+.toggle-spacer {
+  width: 24px;
+}
+
+.icon-button {
+  min-width: 24px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-button.toggle {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.total-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: rgba(124, 58, 237, 0.12);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: #fff;
+}
+
+.note-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.action-chip {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.action-chip:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.action-chip.ghost {
+  background: transparent;
+}
+
+.action-chip.danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
 }
 
 .page-footer {

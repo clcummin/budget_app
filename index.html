@@ -82,11 +82,11 @@
     <section class="card">
       <div class="card-header">
         <h2>Tax settings</h2>
-        <p>Use the built-in rates or adjust them to mirror your paystub.</p>
+        <p>Uses 2024 IRS brackets (single filer) and current FICA rates. Add extra withholding to mirror your paystub.</p>
       </div>
       <div class="grid two">
         <label class="field">
-          <span>Federal tax rate (%)</span>
+          <span>Extra federal withholding (%)</span>
           <input type="number" data-model="federalRate" step="0.1" />
         </label>
         <label class="field">
@@ -194,18 +194,22 @@
       <div class="card-header">
         <div>
           <h2>Budget buckets</h2>
-          <p>Distribute your monthly net pay across the categories you track.</p>
+          <p>Distribute your monthly net pay across the categories you track. Build sections with nested entries, collapse them to see rollups, and drag items around with the move and indent controls.</p>
         </div>
-        <button id="rebalance-button" class="ghost">Rebalance to 100%</button>
+        <div class="inline-actions">
+          <button id="add-entry-button" class="ghost">Add entry</button>
+          <button id="add-section-button" class="ghost">Add section</button>
+          <button id="rebalance-button" class="ghost">Rebalance to 100%</button>
+        </div>
       </div>
       <div class="budget-table">
         <div class="budget-head">
-          <span>Category</span>
+          <span>Section / category</span>
           <span>Percent of net</span>
           <span>Monthly amount</span>
-          <span>Notes / due date</span>
+          <span>Notes &amp; actions</span>
         </div>
-        <div id="budget-rows"></div>
+        <div id="budget-tree" class="budget-tree"></div>
         <div class="budget-foot">
           <span>Total</span>
           <span id="budget-percent-total">0%</span>
