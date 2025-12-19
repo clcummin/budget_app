@@ -201,7 +201,7 @@ const generateId = () => `id-${Math.random().toString(36).slice(2, 8)}-${Date.no
 const createLineItem = (title = "New entry") => ({
   id: generateId(),
   title,
-  perPay: 0,
+  perPay: "",
   note: ""
 });
 
@@ -210,12 +210,15 @@ const sanitizeFilingStatus = (value) => (["single", "married", "hoh"].includes(v
 const sanitizeLineItems = (items = []) =>
   (Array.isArray(items) ? items : [])
     .filter(Boolean)
-    .map((item) => ({
-      id: item.id ?? generateId(),
-      title: item.title ?? item.label ?? "New entry",
-      perPay: coerceNumber(item.perPay),
-      note: item.note ?? ""
-    }));
+    .map((item) => {
+      const perPayRaw = item.perPay ?? item.perPayAmount ?? "";
+      return {
+        id: item.id ?? generateId(),
+        title: item.title ?? item.label ?? "New entry",
+        perPay: perPayRaw === "" ? "" : typeof perPayRaw === "string" ? perPayRaw : coerceNumber(perPayRaw),
+        note: item.note ?? ""
+      };
+    });
 
 const sanitizeTree = (nodes = []) =>
   nodes
@@ -717,10 +720,11 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     title.dataset.field = "title";
 
     const perPay = document.createElement("input");
-    perPay.type = "number";
-    perPay.step = "0.01";
+    perPay.type = "text";
     perPay.inputMode = "decimal";
-    perPay.value = coerceNumber(item.perPay).toFixed(2);
+    perPay.inputPattern = "[0-9]*[.,]?[0-9]*";
+    perPay.value =
+      item.perPay === "" ? "" : typeof item.perPay === "string" ? item.perPay : coerceNumber(item.perPay).toString();
     perPay.dataset.field = "perPay";
 
     const annual = document.createElement("span");
@@ -755,7 +759,7 @@ const updateLineItem = (list, id, field, value) => {
   if (!item) return false;
   if (field === "title") item.title = value;
   if (field === "note") item.note = value;
-  if (field === "perPay") item.perPay = coerceNumber(value);
+  if (field === "perPay") item.perPay = value;
   return true;
 };
 
