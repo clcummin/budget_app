@@ -130,7 +130,7 @@ p {
   box-shadow: var(--shadow);
   padding: 18px 18px 22px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .card::after {
@@ -751,16 +751,29 @@ p {
 }
 .card-tab {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px 6px 12px;
-  margin: 0 0 6px 2px;
-  background: rgba(124, 58, 237, 0.14);
-  color: #fff;
-  border: 1px solid rgba(124, 58, 237, 0.4);
-  border-radius: 10px 10px 0 0;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 12px 10px;
+  margin: 2px 0 6px 2px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-weight: 650;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  position: relative;
+}
+
+.card-tab::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.35), rgba(16, 185, 129, 0.35));
 }
 
 .card-info {
