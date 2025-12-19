@@ -36,11 +36,11 @@
 
   <main class="page-views">
     <section id="income-view" class="layout view active">
+      <div class="card-tab">Income &amp; baselines</div>
       <section class="card" data-collapsible="income">
         <div class="card-header">
-          <div>
-            <h2>Income &amp; baselines</h2>
-            <p>Enter yearly values—per paycheck numbers are calculated for you.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Income &amp; baselines info" data-tooltip="Enter yearly values—per paycheck numbers are calculated for you."></button>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="income" aria-expanded="true">Collapse</button>
@@ -77,11 +77,11 @@
         </div>
       </section>
 
+      <div class="card-tab">Pre-tax deductions</div>
       <section class="card" data-collapsible="pretax">
         <div class="card-header">
-          <div>
-            <h2>Pre-tax deductions</h2>
-            <p>Enter yearly totals. Per-pay amounts are calculated and rolled into contributions.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Pre-tax deductions info" data-tooltip="Enter yearly totals. Per-pay amounts are calculated and rolled into contributions."></button>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="pretax" aria-expanded="true">Collapse</button>
@@ -130,11 +130,15 @@
         </div>
       </section>
 
+      <div class="card-tab">Tax settings</div>
       <section class="card" data-collapsible="taxes">
         <div class="card-header">
-          <div>
-            <h2>Tax settings</h2>
-            <p>Uses 2025 IRS brackets, 2025 California brackets (with the $1M mental health surcharge), and current FICA rates. The expected bracket auto-fills—override if needed.</p>
+          <div class="card-info">
+            <button
+              class="info-icon"
+              aria-label="Tax settings info"
+              data-tooltip="Uses 2025 IRS brackets, 2025 California brackets (with the $1M mental health surcharge), and current FICA rates. The expected bracket auto-fills—override if needed."
+            ></button>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true">Collapse</button>
@@ -199,11 +203,11 @@
         </div>
       </section>
 
+      <div class="card-tab">After-tax deductions</div>
       <section class="card" data-collapsible="posttax">
         <div class="card-header">
-          <div>
-            <h2>After-tax deductions</h2>
-            <p>Items withheld after taxes. Add anything that comes out of each paycheck.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="After-tax deductions info" data-tooltip="Items withheld after taxes. Add anything that comes out of each paycheck."></button>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="posttax" aria-expanded="true">Collapse</button>
@@ -225,11 +229,11 @@
         </div>
       </section>
 
+      <div class="card-tab">Additional income</div>
       <section class="card" data-collapsible="additional">
         <div class="card-header">
-          <div>
-            <h2>Additional income</h2>
-            <p>Credits or reimbursements that get added to your paycheck. Enter per-pay amounts.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Additional income info" data-tooltip="Credits or reimbursements that get added to your paycheck. Enter per-pay amounts."></button>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="additional" aria-expanded="true">Collapse</button>
@@ -251,11 +255,11 @@
         </div>
       </section>
 
+      <div class="card-tab">Paycheck summary</div>
       <section class="card span-2" data-collapsible="summary">
         <div class="card-header">
-          <div>
-            <h2>Paycheck summary</h2>
-            <p>We calculate per-pay, monthly, and annual totals from your inputs.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Paycheck summary info" data-tooltip="We calculate per-pay, monthly, and annual totals from your inputs."></button>
           </div>
           <div class="card-tools">
             <div class="legend">
@@ -304,11 +308,15 @@
     </section>
 
     <section id="budget-view" class="layout view">
+      <div class="card-tab">Budget bucket targets</div>
       <section class="card span-2" data-collapsible="bucket-overview">
         <div class="card-header">
-          <div>
-            <h2>Budget bucket targets</h2>
-            <p>Set a target percent for each section, compare to the current plan, and spot areas to trim or expand.</p>
+          <div class="card-info">
+            <button
+              class="info-icon"
+              aria-label="Budget bucket targets info"
+              data-tooltip="Set a target percent for each section, compare to the current plan, and spot areas to trim or expand."
+            ></button>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="bucket-overview" aria-expanded="true">Collapse</button>
@@ -320,11 +328,15 @@
         </div>
       </section>
 
+      <div class="card-tab">Budget buckets</div>
       <section class="card span-2" data-collapsible="budget">
         <div class="card-header">
-          <div>
-            <h2>Budget buckets</h2>
-            <p>Distribute your monthly net pay across the categories you track. Build sections with nested entries, collapse them to see rollups, and drag items around with the move and indent controls.</p>
+          <div class="card-info">
+            <button
+              class="info-icon"
+              aria-label="Budget buckets info"
+              data-tooltip="Distribute your monthly net pay across the categories you track. Build sections with nested entries, collapse them to see rollups, and drag items around with the move and indent controls."
+            ></button>
           </div>
           <div class="card-tools">
             <div class="inline-actions">
@@ -359,11 +371,11 @@
     </section>
 
     <section id="insights-view" class="layout view">
+      <div class="card-tab">Annual outlook</div>
       <section class="card span-2">
         <div class="card-header">
-          <div>
-            <h2>Annual outlook</h2>
-            <p>See how much of your planned income is allocated and what remains unassigned.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Annual outlook info" data-tooltip="See how much of your planned income is allocated and what remains unassigned."></button>
           </div>
         </div>
         <div class="stat-grid">
@@ -385,11 +397,11 @@
         </div>
       </section>
 
+      <div class="card-tab">Annual category amounts</div>
       <section class="card">
         <div class="card-header">
-          <div>
-            <h2>Annual category amounts</h2>
-            <p>Bar view of projected annual amounts per budget item.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Annual category amounts info" data-tooltip="Bar view of projected annual amounts per budget item."></button>
           </div>
         </div>
         <div class="chart-wrapper">
@@ -397,11 +409,11 @@
         </div>
       </section>
 
+      <div class="card-tab">Category mix</div>
       <section class="card">
         <div class="card-header">
-          <div>
-            <h2>Category mix</h2>
-            <p>See how your monthly budget splits across categories.</p>
+          <div class="card-info">
+            <button class="info-icon" aria-label="Category mix info" data-tooltip="See how your monthly budget splits across categories."></button>
           </div>
         </div>
         <div class="chart-wrapper">
