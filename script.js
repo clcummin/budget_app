@@ -1,4 +1,4 @@
-const STORAGE_KEY = "budget-planner-state-v2";
+const STORAGE_KEY = "budget-planner-state-v3";
 const SOCIAL_SECURITY_WAGE_BASE = 168600; // 2024 wage base
 
 const FEDERAL_BRACKETS_2024_SINGLE = [
@@ -86,24 +86,35 @@ const defaultBudgetTree = [
 ];
 
 const defaultState = {
+  salaryAnnual: 0,
   salaryPerPay: 0,
   periodsPerYear: 26,
   standardDeductionAnnual: 14600,
+  w4ExtraAnnual: 0,
   w4ExtraPerPay: 0,
   k401Percent: 0,
+  hsaAnnual: 0,
   hsaPerPay: 0,
+  dentalAnnual: 0,
   dentalPerPay: 0,
+  medicalAnnual: 0,
   medicalPerPay: 0,
+  otherPretaxAnnual: 0,
   otherPretaxPerPay: 0,
+  federalBracketOverride: null,
   federalRate: 0,
   stateRate: 6,
   socialSecurityRate: 6.2,
   medicareRate: 1.45,
   sdiRate: 1,
+  ltdAnnual: 0,
   ltdPerPay: 0,
   esppPercent: 5,
+  rentAnnual: 0,
   rentPerPay: 0,
+  gymAnnual: 0,
   gymPerPay: 0,
+  phoneAnnual: 0,
   phonePerPay: 0,
   targetBudgetMonthly: 0,
   actualSpentMonthly: 0,
@@ -120,12 +131,14 @@ const defaultState = {
   }
 };
 
-const currency = (value) =>
-  value.toLocaleString("en-US", {
+const currency = (value) => {
+  if (!Number.isFinite(value)) return "$0";
+  return value.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2
   });
+};
 
 const percentDisplay = (value) => `${value.toFixed(1)}%`;
 
@@ -199,7 +212,10 @@ const saveState = (state) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
-const calculateFederalAnnualTax = (annualTaxableIncome) => {
+const calculateFederalAnnualTax = (annualTaxableIncome, flatRateOverride) => {
+  if (Number.isFinite(flatRateOverride) && flatRateOverride > 0) {
+    return annualTaxableIncome * flatRateOverride;
+  }
   let tax = 0;
   let lowerBound = 0;
 
@@ -216,50 +232,163 @@ const calculateFederalAnnualTax = (annualTaxableIncome) => {
   return tax;
 };
 
+const findFederalBracket = (annualTaxableIncome) => {
+  let lowerBound = 0;
+
+  for (const bracket of FEDERAL_BRACKETS_2024_SINGLE) {
+    const upper = bracket.upTo;
+    if (annualTaxableIncome <= upper) {
+      return { lower: lowerBound, upper, rate: bracket.rate };
+    }
+    lowerBound = upper;
+  }
+
+  return { lower: 0, upper: Infinity, rate: 0 };
+};
+
+const rangeLabel = (lower, upper) => {
+  const lowerLabel = currency(lower);
+  if (!Number.isFinite(upper)) return `${lowerLabel} and up`;
+  return `${lowerLabel} - ${currency(upper)}`;
+};
+
+const annualFromState = (state, annualKey, perPayKey, periods) => {
+  const annualValue = coerceNumber(state[annualKey]);
+  if (annualValue > 0) return annualValue;
+  return coerceNumber(state[perPayKey]) * periods;
+};
+
+const recalcDerivedFields = (state) => {
+  const periods = Math.max(1, coerceNumber(state.periodsPerYear));
+  const pairs = [
+    ["salaryAnnual", "salaryPerPay"],
+    ["w4ExtraAnnual", "w4ExtraPerPay"],
+    ["hsaAnnual", "hsaPerPay"],
+    ["dentalAnnual", "dentalPerPay"],
+    ["medicalAnnual", "medicalPerPay"],
+    ["otherPretaxAnnual", "otherPretaxPerPay"],
+    ["ltdAnnual", "ltdPerPay"],
+    ["rentAnnual", "rentPerPay"],
+    ["gymAnnual", "gymPerPay"],
+    ["phoneAnnual", "phonePerPay"]
+  ];
+
+  pairs.forEach(([annualKey, perPayKey]) => {
+    const annualValue = coerceNumber(state[annualKey]);
+    const perPayValue = coerceNumber(state[perPayKey]);
+    if (annualValue > 0) {
+      state[perPayKey] = Math.round((annualValue / periods) * 100) / 100;
+    } else if (perPayValue > 0) {
+      state[annualKey] = Math.round(perPayValue * periods * 100) / 100;
+    } else {
+      state[annualKey] = 0;
+      state[perPayKey] = 0;
+    }
+  });
+};
+
+const updateInputsFromState = (state) => {
+  document.querySelectorAll("[data-model]").forEach((input) => {
+    const key = input.dataset.model;
+    if (!(key in state)) return;
+    const value = state[key];
+    input.value = value ?? "";
+  });
+};
+
 const calculatePay = (state) => {
   const periods = Math.max(1, coerceNumber(state.periodsPerYear));
-  const grossPay = coerceNumber(state.salaryPerPay);
+  const grossAnnual = Math.max(0, coerceNumber(state.salaryAnnual) || coerceNumber(state.salaryPerPay) * periods);
+  const grossPay = grossAnnual / periods;
 
   const pretaxFrom401k = grossPay * (coerceNumber(state.k401Percent) / 100);
-  const pretax =
-    pretaxFrom401k +
-    coerceNumber(state.hsaPerPay) +
-    coerceNumber(state.dentalPerPay) +
-    coerceNumber(state.medicalPerPay) +
-    coerceNumber(state.otherPretaxPerPay);
+  const hsaAnnual = annualFromState(state, "hsaAnnual", "hsaPerPay", periods);
+  const dentalAnnual = annualFromState(state, "dentalAnnual", "dentalPerPay", periods);
+  const medicalAnnual = annualFromState(state, "medicalAnnual", "medicalPerPay", periods);
+  const otherPretaxAnnual = annualFromState(state, "otherPretaxAnnual", "otherPretaxPerPay", periods);
+
+  const hsaPerPay = hsaAnnual / periods;
+  const dentalPerPay = dentalAnnual / periods;
+  const medicalPerPay = medicalAnnual / periods;
+  const otherPretaxPerPay = otherPretaxAnnual / periods;
+
+  const pretax = pretaxFrom401k + hsaPerPay + dentalPerPay + medicalPerPay + otherPretaxPerPay;
 
   const standardDeductionPerPay = coerceNumber(state.standardDeductionAnnual) / periods;
   const taxableIncome = Math.max(0, grossPay - pretax - standardDeductionPerPay);
   const annualTaxable = taxableIncome * periods;
 
-  const federalTaxAnnual = calculateFederalAnnualTax(annualTaxable);
+  const bracketOverrideRate = coerceNumber(state.federalBracketOverride);
+  const bracketOverrideActive = Number.isFinite(bracketOverrideRate) && bracketOverrideRate > 0;
+  const expectedFederalBracket = findFederalBracket(annualTaxable);
+  const overrideRateDecimal = bracketOverrideActive ? bracketOverrideRate / 100 : null;
+  const usedFederalRate = (overrideRateDecimal ?? expectedFederalBracket.rate) * 100;
+
+  const federalTaxAnnual = calculateFederalAnnualTax(annualTaxable, overrideRateDecimal);
   const federalTaxFromPercent = taxableIncome * (coerceNumber(state.federalRate) / 100);
-  const federalTax = federalTaxAnnual / periods + federalTaxFromPercent + coerceNumber(state.w4ExtraPerPay);
+  const w4ExtraAnnual = annualFromState(state, "w4ExtraAnnual", "w4ExtraPerPay", periods);
+  const federalTax = federalTaxAnnual / periods + federalTaxFromPercent + w4ExtraAnnual / periods;
 
   const stateTax = taxableIncome * (coerceNumber(state.stateRate) / 100);
-  const socialSecurityTax = (Math.min(annualTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) / periods;
+  const socialSecurityTax =
+    (Math.min(annualTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) / periods;
   const medicareTax = (annualTaxable * (coerceNumber(state.medicareRate) / 100)) / periods;
   const sdiTax = taxableIncome * (coerceNumber(state.sdiRate) / 100);
   const taxes = federalTax + stateTax + socialSecurityTax + medicareTax + sdiTax;
 
   const espp = grossPay * (coerceNumber(state.esppPercent) / 100);
-  const postTax = espp + coerceNumber(state.ltdPerPay);
+  const ltdAnnual = annualFromState(state, "ltdAnnual", "ltdPerPay", periods);
+  const ltdPerPay = ltdAnnual / periods;
+  const postTax = espp + ltdPerPay;
 
-  const additionalIncome =
-    coerceNumber(state.rentPerPay) + coerceNumber(state.gymPerPay) + coerceNumber(state.phonePerPay);
+  const rentAnnual = annualFromState(state, "rentAnnual", "rentPerPay", periods);
+  const gymAnnual = annualFromState(state, "gymAnnual", "gymPerPay", periods);
+  const phoneAnnual = annualFromState(state, "phoneAnnual", "phonePerPay", periods);
+
+  const rentPerPay = rentAnnual / periods;
+  const gymPerPay = gymAnnual / periods;
+  const phonePerPay = phoneAnnual / periods;
+
+  const additionalIncome = rentPerPay + gymPerPay + phonePerPay;
   const netPay = grossPay - pretax - taxes - postTax + additionalIncome;
 
   const toMonth = (value) => (value * periods) / 12;
   const toYear = (value) => value * periods;
+  const bundle = (value) => ({ pay: value, month: toMonth(value), year: toYear(value) });
 
   return {
-    gross: { pay: grossPay, month: toMonth(grossPay), year: toYear(grossPay) },
-    pretax: { pay: pretax, month: toMonth(pretax), year: toYear(pretax) },
-    taxable: { pay: taxableIncome, month: toMonth(taxableIncome), year: toYear(taxableIncome) },
-    taxes: { pay: taxes, month: toMonth(taxes), year: toYear(taxes) },
-    posttax: { pay: postTax, month: toMonth(postTax), year: toYear(postTax) },
-    additionalIncome: { pay: additionalIncome, month: toMonth(additionalIncome), year: toYear(additionalIncome) },
-    net: { pay: netPay, month: toMonth(netPay), year: toYear(netPay) }
+    gross: bundle(grossPay),
+    pretax: bundle(pretax),
+    taxable: bundle(taxableIncome),
+    taxes: bundle(taxes),
+    posttax: bundle(postTax),
+    additionalIncome: bundle(additionalIncome),
+    net: bundle(netPay),
+    details: {
+      grossAnnual,
+      standardDeductionAnnual: coerceNumber(state.standardDeductionAnnual),
+      annualTaxable,
+      expectedFederalBracket,
+      usedFederalRate,
+      effectiveFederalRate:
+        annualTaxable > 0 ? (calculateFederalAnnualTax(annualTaxable, overrideRateDecimal) / annualTaxable) * 100 : 0,
+      pretaxBreakdown: {
+        retirement401k: bundle(pretaxFrom401k),
+        hsa: bundle(hsaPerPay),
+        dental: bundle(dentalPerPay),
+        medical: bundle(medicalPerPay),
+        other: bundle(otherPretaxPerPay)
+      },
+      postTaxBreakdown: {
+        espp: bundle(espp),
+        ltd: bundle(ltdPerPay)
+      },
+      additionalBreakdown: {
+        rent: bundle(rentPerPay),
+        gym: bundle(gymPerPay),
+        phone: bundle(phonePerPay)
+      }
+    }
   };
 };
 
@@ -286,6 +415,63 @@ const renderSummary = (calculated) => {
       el.innerHTML = createValueGroup(values);
     }
   });
+};
+
+const renderBreakdownList = (target, breakdown, labelMap) => {
+  if (!target) return;
+  target.innerHTML = "";
+  Object.entries(breakdown).forEach(([key, bundle]) => {
+    const label = labelMap[key] ?? key;
+    const item = document.createElement("li");
+    item.textContent = `${label}: ${currency(bundle.year)} / yr (${currency(bundle.month)} / mo)`;
+    target.appendChild(item);
+  });
+};
+
+const renderSnapshot = (calculated) => {
+  const { details } = calculated;
+  const { expectedFederalBracket, usedFederalRate, effectiveFederalRate } = details;
+  const bracketLabel = `${usedFederalRate.toFixed(1)}% marginal (${rangeLabel(
+    expectedFederalBracket.lower,
+    expectedFederalBracket.upper
+  )})`;
+
+  const bracketField = document.querySelector('[data-output="federalBracket"]');
+  if (bracketField) bracketField.textContent = bracketLabel;
+  const bracketTile = document.querySelector('[data-output="federalBracketLabel"]');
+  if (bracketTile) bracketTile.textContent = bracketLabel;
+
+  const effectiveField = document.querySelector('[data-output="effectiveFederal"]');
+  if (effectiveField) effectiveField.textContent = `Effective: ${effectiveFederalRate.toFixed(1)}% of taxable income`;
+
+  const pretaxTotal = document.querySelector('[data-output="pretaxTotal"]');
+  if (pretaxTotal) pretaxTotal.textContent = `${currency(calculated.pretax.year)} / yr`;
+  const posttaxTotal = document.querySelector('[data-output="posttaxTotal"]');
+  if (posttaxTotal) posttaxTotal.textContent = `${currency(calculated.posttax.year)} / yr`;
+  const additionalTotal = document.querySelector('[data-output="additionalTotal"]');
+  if (additionalTotal) additionalTotal.textContent = `${currency(calculated.additionalIncome.year)} / yr`;
+
+  renderBreakdownList(
+    document.querySelector('[data-output="pretaxBreakdown"]'),
+    details.pretaxBreakdown,
+    {
+      retirement401k: "Retirement (401k)",
+      hsa: "HSA",
+      dental: "Dental",
+      medical: "Medical",
+      other: "Other"
+    }
+  );
+  renderBreakdownList(
+    document.querySelector('[data-output="posttaxBreakdown"]'),
+    details.postTaxBreakdown,
+    { espp: "ESPP", ltd: "LTD" }
+  );
+  renderBreakdownList(
+    document.querySelector('[data-output="additionalBreakdown"]'),
+    details.additionalBreakdown,
+    { rent: "Rent stipend", gym: "Gym credit", phone: "Phone credit" }
+  );
 };
 
 const calculateNodeTotals = (node, netMonthly) => {
@@ -702,6 +888,7 @@ const rebalanceBudgetTree = (state) => {
 const refreshBudget = (state) => {
   const calculations = calculatePay(state);
   renderSummary(calculations);
+  renderSnapshot(calculations);
   renderBudgetTree(state, calculations.net.month);
   const totals = calculateTreeTotals(state.budgetTree, calculations.net.month);
   renderCharts(state, calculations, totals);
@@ -712,11 +899,17 @@ const attachModelInputs = (state) => {
   inputs.forEach((input) => {
     const key = input.dataset.model;
     if (!(key in state)) return;
-    input.value = state[key];
+    input.value = state[key] ?? "";
+
+    if (input.readOnly) return;
 
     input.addEventListener("input", () => {
-      state[key] = coerceNumber(input.value);
+      const raw = input.value;
+      const numeric = coerceNumber(raw);
+      state[key] = raw === "" ? 0 : numeric;
+      recalcDerivedFields(state);
       saveState(state);
+      updateInputsFromState(state);
       refreshBudget(state);
     });
   });
@@ -884,6 +1077,9 @@ const applyCardCollapse = (state) => {
 
 const init = () => {
   const state = loadState();
+  recalcDerivedFields(state);
+  updateInputsFromState(state);
+  saveState(state);
   attachModelInputs(state);
   refreshBudget(state);
   bindBudgetListeners(state);
@@ -892,9 +1088,8 @@ const init = () => {
   const resetButton = document.getElementById("reset-button");
   resetButton.addEventListener("click", () => {
     resetState(state);
-    document.querySelectorAll("[data-model]").forEach((input) => {
-      input.value = state[input.dataset.model];
-    });
+    recalcDerivedFields(state);
+    updateInputsFromState(state);
     refreshBudget(state);
     applyCardCollapse(state);
   });
