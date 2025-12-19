@@ -1,13 +1,13 @@
-const STORAGE_KEY = "budget-planner-state-v3";
-const SOCIAL_SECURITY_WAGE_BASE = 168600; // 2024 wage base
+const STORAGE_KEY = "budget-planner-state-v4";
+const SOCIAL_SECURITY_WAGE_BASE = 174600; // 2025 wage base
 
-const FEDERAL_BRACKETS_2024_SINGLE = [
-  { upTo: 11600, rate: 0.1 },
-  { upTo: 47150, rate: 0.12 },
-  { upTo: 100525, rate: 0.22 },
-  { upTo: 191950, rate: 0.24 },
-  { upTo: 243725, rate: 0.32 },
-  { upTo: 609350, rate: 0.35 },
+const FEDERAL_BRACKETS_2025_SINGLE = [
+  { upTo: 11975, rate: 0.1 },
+  { upTo: 48650, rate: 0.12 },
+  { upTo: 103750, rate: 0.22 },
+  { upTo: 198100, rate: 0.24 },
+  { upTo: 251500, rate: 0.32 },
+  { upTo: 628850, rate: 0.35 },
   { upTo: Infinity, rate: 0.37 }
 ];
 
@@ -18,6 +18,7 @@ const defaultBudgetTree = [
     title: "Housing",
     note: "Mortgage/rent, HOA, utilities, taxes",
     collapsed: false,
+    targetPercent: 40,
     children: [
       { id: "item-primary", type: "item", title: "Home - primary", percent: 28.1, note: "Mortgage/rent, HOA, water, taxes" },
       {
@@ -26,6 +27,7 @@ const defaultBudgetTree = [
         title: "California housing",
         note: "Rent + utilities",
         collapsed: false,
+        targetPercent: 12,
         children: [
           { id: "item-rent", type: "item", title: "Rent", percent: 18, note: "Apartment rent" },
           { id: "item-utilities", type: "item", title: "Utilities", percent: 11.4, note: "Power, water, trash, internet" }
@@ -39,6 +41,7 @@ const defaultBudgetTree = [
     title: "Transportation",
     note: "Gas, car payment, insurance, parking",
     collapsed: false,
+    targetPercent: 15,
     children: [
       { id: "item-transport", type: "item", title: "Transportation", percent: 13.5, note: "Gas, car payment, insurance, parking" }
     ]
@@ -49,6 +52,7 @@ const defaultBudgetTree = [
     title: "Debt",
     note: "Cards and student loans",
     collapsed: false,
+    targetPercent: 10,
     children: [
       { id: "item-debt", type: "item", title: "Debt", percent: 3.6, note: "Cards and student loans" }
     ]
@@ -59,6 +63,7 @@ const defaultBudgetTree = [
     title: "Additional expenses",
     note: "Subscriptions, memberships, misc",
     collapsed: false,
+    targetPercent: 10,
     children: [
       { id: "item-additional", type: "item", title: "Additional expenses", percent: 7, note: "Subscriptions, memberships, misc" }
     ]
@@ -69,6 +74,7 @@ const defaultBudgetTree = [
     title: "Charitable donations",
     note: "Monthly giving",
     collapsed: false,
+    targetPercent: 5,
     children: [
       { id: "item-charity", type: "item", title: "Charitable donations", percent: 1, note: "Monthly giving" }
     ]
@@ -79,6 +85,7 @@ const defaultBudgetTree = [
     title: "Savings",
     note: "Reserve, vacations, long-term",
     collapsed: false,
+    targetPercent: 20,
     children: [
       { id: "item-savings", type: "item", title: "Savings", percent: 17.4, note: "Reserve, vacations, long-term" }
     ]
@@ -89,7 +96,7 @@ const defaultState = {
   salaryAnnual: 0,
   salaryPerPay: 0,
   periodsPerYear: 26,
-  standardDeductionAnnual: 14600,
+  standardDeductionAnnual: 15070,
   w4ExtraAnnual: 0,
   w4ExtraPerPay: 0,
   k401Percent: 0,
@@ -116,8 +123,6 @@ const defaultState = {
   gymPerPay: 0,
   phoneAnnual: 0,
   phonePerPay: 0,
-  targetBudgetMonthly: 0,
-  actualSpentMonthly: 0,
   budgetTree: structuredClone(defaultBudgetTree),
   collapsedCards: {
     income: false,
@@ -127,7 +132,8 @@ const defaultState = {
     additional: false,
     snapshot: false,
     summary: false,
-    budget: false
+    budget: false,
+    "bucket-overview": false
   }
 };
 
@@ -160,6 +166,7 @@ const sanitizeTree = (nodes = []) =>
           title: node.title ?? node.label ?? "New section",
           note: node.note ?? "",
           collapsed: Boolean(node.collapsed),
+          targetPercent: coerceNumber(node.targetPercent),
           children: sanitizeTree(node.children || [])
         };
       }
@@ -219,7 +226,7 @@ const calculateFederalAnnualTax = (annualTaxableIncome, flatRateOverride) => {
   let tax = 0;
   let lowerBound = 0;
 
-  for (const bracket of FEDERAL_BRACKETS_2024_SINGLE) {
+  for (const bracket of FEDERAL_BRACKETS_2025_SINGLE) {
     const upper = bracket.upTo;
     const rate = bracket.rate;
     const taxableInBracket = Math.min(annualTaxableIncome, upper) - lowerBound;
@@ -235,7 +242,7 @@ const calculateFederalAnnualTax = (annualTaxableIncome, flatRateOverride) => {
 const findFederalBracket = (annualTaxableIncome) => {
   let lowerBound = 0;
 
-  for (const bracket of FEDERAL_BRACKETS_2024_SINGLE) {
+  for (const bracket of FEDERAL_BRACKETS_2025_SINGLE) {
     const upper = bracket.upTo;
     if (annualTaxableIncome <= upper) {
       return { lower: lowerBound, upper, rate: bracket.rate };
@@ -503,6 +510,30 @@ const calculateTreeTotals = (tree, netMonthly) =>
     { percent: 0, amount: 0 }
   );
 
+const calculateSectionTargets = (tree, netMonthly) => {
+  const targets = [];
+  const visit = (nodes) => {
+    nodes.forEach((node) => {
+      if (node.type === "section") {
+        const totals = calculateNodeTotals(node, netMonthly);
+        const target = coerceNumber(node.targetPercent);
+        const delta = totals.percent - target;
+        targets.push({
+          id: node.id,
+          title: node.title ?? "Section",
+          target,
+          actual: totals.percent,
+          monthly: totals.amount,
+          delta
+        });
+        visit(node.children || []);
+      }
+    });
+  };
+  visit(tree);
+  return targets;
+};
+
 const flattenBudgetItems = (nodes, netMonthly, prefix = "") =>
   nodes.reduce((list, node) => {
     const label = prefix ? `${prefix} › ${node.title ?? "Untitled"}` : node.title ?? "Untitled";
@@ -517,7 +548,6 @@ const flattenBudgetItems = (nodes, netMonthly, prefix = "") =>
     return list;
   }, []);
 
-let targetChart;
 let categoryBarChart;
 let categoryPieChart;
 
@@ -542,62 +572,6 @@ const buildOrUpdateChart = (chartRef, ctx, config) => {
     return chartRef;
   }
   return new Chart(ctx, config);
-};
-
-const renderTargetProgress = (state, calculations) => {
-  const target = coerceNumber(state.targetBudgetMonthly);
-  const actual = coerceNumber(state.actualSpentMonthly);
-  const variance = actual - target;
-
-  const varianceAmount = document.getElementById("variance-amount");
-  const varianceStatus = document.getElementById("variance-status");
-  if (varianceAmount && varianceStatus) {
-    varianceAmount.textContent = currency(variance);
-    if (variance === 0) {
-      varianceStatus.textContent = "On track";
-    } else if (variance > 0) {
-      varianceStatus.textContent = "Over target";
-    } else {
-      varianceStatus.textContent = "Under target";
-    }
-  }
-
-  const ctx = document.getElementById("target-progress-chart");
-  if (!ctx) return;
-
-  targetChart = buildOrUpdateChart(targetChart, ctx, {
-    type: "bar",
-    data: {
-      labels: ["Target budget", "Actual spend"],
-      datasets: [
-        {
-          label: "Amount",
-          data: [target, actual],
-          backgroundColor: [baseChartColors[0], baseChartColors[4]],
-          borderRadius: 10
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (context) => `${context.dataset.label}: ${currency(context.parsed.y)}`
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: (value) => currency(value)
-          }
-        }
-      }
-    }
-  });
 };
 
 const renderInsightStats = (calculations, totals) => {
@@ -694,10 +668,108 @@ const renderCategoryCharts = (state, calculations) => {
   }
 };
 
-const renderCharts = (state, calculations, totals) => {
-  renderTargetProgress(state, calculations);
+const renderBucketTargets = (state, calculations, targets) => {
+  const container = document.getElementById("bucket-targets");
+  if (!container) return;
+
+  const targetEntries = targets ?? calculateSectionTargets(state.budgetTree, calculations.net.month);
+  container.innerHTML = "";
+
+  if (targetEntries.length === 0) {
+    container.textContent = "Add a section to start tracking targets.";
+    return;
+  }
+
+  targetEntries.forEach((entry) => {
+    const card = document.createElement("div");
+    card.className = "bucket-target";
+
+    const header = document.createElement("div");
+    header.className = "bucket-target__header";
+    const title = document.createElement("p");
+    title.className = "bucket-target__title";
+    title.textContent = entry.title;
+    const monthly = document.createElement("p");
+    monthly.className = "bucket-target__amount";
+    monthly.textContent = currency(entry.monthly);
+    header.appendChild(title);
+    header.appendChild(monthly);
+
+    const progress = document.createElement("div");
+    progress.className = "bucket-target__row";
+    const target = document.createElement("span");
+    target.textContent = `Target: ${percentDisplay(entry.target || 0)}`;
+    const actual = document.createElement("span");
+    actual.textContent = `Planned: ${percentDisplay(entry.actual)}`;
+    progress.appendChild(target);
+    progress.appendChild(actual);
+
+    const delta = document.createElement("p");
+    delta.className = `bucket-target__delta ${entry.delta > 0 ? "over" : entry.delta < 0 ? "under" : ""}`;
+    if (entry.delta > 0) {
+      delta.textContent = `Over target by ${percentDisplay(entry.delta)}`;
+    } else if (entry.delta < 0) {
+      delta.textContent = `Under target by ${percentDisplay(Math.abs(entry.delta))}`;
+    } else {
+      delta.textContent = "On target";
+    }
+
+    card.appendChild(header);
+    card.appendChild(progress);
+    card.appendChild(delta);
+    container.appendChild(card);
+  });
+};
+
+const renderCharts = (state, calculations, totals, targets) => {
   renderInsightStats(calculations, totals);
   renderCategoryCharts(state, calculations);
+  renderBucketTargets(state, calculations, targets);
+};
+
+const updatePeekBadges = (calculations, totals, targets) => {
+  const summaryPeek = document.getElementById("peek-summary");
+  if (summaryPeek) {
+    summaryPeek.innerHTML = `
+      <span>Net: ${currency(calculations.net.month)} / mo</span>
+      <span>Gross: ${currency(calculations.gross.month)} / mo</span>
+    `;
+  }
+
+  const budgetPeek = document.getElementById("peek-budget");
+  if (budgetPeek) {
+    const unused = calculations.net.month - totals.amount;
+    const unusedLabel = unused >= 0 ? "Unused" : "Over";
+    budgetPeek.innerHTML = `
+      <span>Planned: ${percentDisplay(totals.percent)} (${currency(totals.amount)} / mo)</span>
+      <span>${unusedLabel}: ${currency(Math.abs(unused))} / mo</span>
+    `;
+  }
+
+  const bucketPeek = document.getElementById("peek-bucket-targets");
+  if (bucketPeek) {
+    const over = targets.filter((t) => t.delta > 0);
+    const under = targets.filter((t) => t.delta < 0);
+    const biggest = targets.reduce(
+      (current, entry) => {
+        const overage = entry.delta;
+        if (Math.abs(overage) > Math.abs(current.delta)) return entry;
+        return current;
+      },
+      { delta: 0, title: "" }
+    );
+
+    const biggestLabel =
+      biggest && biggest.title
+        ? `${biggest.title}: ${biggest.delta > 0 ? "+" : "-"}${percentDisplay(Math.abs(biggest.delta))}`
+        : "—";
+
+    bucketPeek.innerHTML = `
+      <span>Over target: ${over.length}</span>
+      <span>Under target: ${under.length}</span>
+      <span>Largest gap: ${biggestLabel}</span>
+    `;
+  }
 };
 
 const findNodeContext = (nodes, id, parent = null) => {
@@ -713,10 +785,21 @@ const findNodeContext = (nodes, id, parent = null) => {
 };
 
 const createItem = () => ({ id: generateId(), type: "item", title: "New entry", percent: 0, note: "" });
-const createSection = () => ({ id: generateId(), type: "section", title: "New section", note: "", collapsed: false, children: [createItem()] });
+const createSection = () => ({
+  id: generateId(),
+  type: "section",
+  title: "New section",
+  note: "",
+  collapsed: false,
+  targetPercent: 0,
+  children: [createItem()]
+});
 
-const renderBudgetTree = (state, netMonthly) => {
-  const container = document.getElementById("budget-tree");
+const renderBudgetTree = (state, netMonthly, config) => {
+  const { treeId, percentTotalId, amountTotalId, unusedId } = config;
+  const container = document.getElementById(treeId);
+  if (!container) return;
+
   container.innerHTML = "";
 
   const buildRow = (node, depth) => {
@@ -755,6 +838,20 @@ const renderBudgetTree = (state, netMonthly) => {
 
     labelCell.appendChild(labelStack);
     row.appendChild(labelCell);
+
+    const targetCell = document.createElement("div");
+    targetCell.className = "cell target-cell";
+    if (node.type === "section") {
+      const targetInput = document.createElement("input");
+      targetInput.type = "number";
+      targetInput.step = "0.1";
+      targetInput.dataset.field = "targetPercent";
+      targetInput.value = coerceNumber(node.targetPercent).toFixed(1);
+      targetCell.appendChild(targetInput);
+    } else {
+      targetCell.textContent = "—";
+    }
+    row.appendChild(targetCell);
 
     const percentCell = document.createElement("div");
     percentCell.className = "cell percent-cell";
@@ -858,11 +955,16 @@ const renderBudgetTree = (state, netMonthly) => {
   state.budgetTree.forEach((node) => buildRow(node, 0));
 
   const totals = calculateTreeTotals(state.budgetTree, netMonthly);
-  document.getElementById("budget-percent-total").textContent = percentDisplay(totals.percent);
-  document.getElementById("budget-amount-total").textContent = currency(totals.amount);
-  const unused = netMonthly - totals.amount;
-  document.getElementById("unused-money").textContent =
-    netMonthly > 0 ? `${unused >= 0 ? "Unused" : "Over budget"}: ${currency(unused)}` : "Enter pay details to see unused amounts.";
+  const percentTotalEl = document.getElementById(percentTotalId);
+  const amountTotalEl = document.getElementById(amountTotalId);
+  const unusedEl = document.getElementById(unusedId);
+  if (percentTotalEl) percentTotalEl.textContent = percentDisplay(totals.percent);
+  if (amountTotalEl) amountTotalEl.textContent = currency(totals.amount);
+  if (unusedEl) {
+    const unused = netMonthly - totals.amount;
+    unusedEl.textContent =
+      netMonthly > 0 ? `${unused >= 0 ? "Unused" : "Over budget"}: ${currency(unused)}` : "Enter pay details to see unused amounts.";
+  }
 };
 
 const rebalanceBudgetTree = (state) => {
@@ -887,11 +989,19 @@ const rebalanceBudgetTree = (state) => {
 
 const refreshBudget = (state) => {
   const calculations = calculatePay(state);
+  const netMonthly = calculations.net.month;
   renderSummary(calculations);
   renderSnapshot(calculations);
-  renderBudgetTree(state, calculations.net.month);
-  const totals = calculateTreeTotals(state.budgetTree, calculations.net.month);
-  renderCharts(state, calculations, totals);
+  renderBudgetTree(state, netMonthly, {
+    treeId: "budget-tree",
+    percentTotalId: "budget-percent-total",
+    amountTotalId: "budget-amount-total",
+    unusedId: "unused-money"
+  });
+  const totals = calculateTreeTotals(state.budgetTree, netMonthly);
+  const targets = calculateSectionTargets(state.budgetTree, netMonthly);
+  renderCharts(state, calculations, totals, targets);
+  updatePeekBadges(calculations, totals, targets);
 };
 
 const attachModelInputs = (state) => {
@@ -937,6 +1047,8 @@ const handleBudgetInput = (state, event) => {
     const netMonthly = calculations.net.month;
     const amountValue = coerceNumber(target.value);
     node.percent = netMonthly > 0 ? (amountValue / netMonthly) * 100 : 0;
+  } else if (field === "targetPercent" && node.type === "section") {
+    node.targetPercent = coerceNumber(target.value);
   }
 
   saveState(state);
@@ -1014,8 +1126,10 @@ const handleBudgetAction = (state, action, context) => {
   return false;
 };
 
-const bindBudgetListeners = (state) => {
-  const tree = document.getElementById("budget-tree");
+const bindBudgetListeners = (state, config) => {
+  const { treeId, addEntryId, addSectionId, rebalanceId } = config;
+  const tree = document.getElementById(treeId);
+  if (!tree) return;
 
   tree.addEventListener("input", (event) => handleBudgetInput(state, event));
 
@@ -1036,19 +1150,32 @@ const bindBudgetListeners = (state) => {
     }
   });
 
-  const addSectionButton = document.getElementById("add-section-button");
-  addSectionButton.addEventListener("click", () => {
-    state.budgetTree.push(createSection());
-    saveState(state);
-    refreshBudget(state);
-  });
+  const addSectionButton = document.getElementById(addSectionId);
+  if (addSectionButton) {
+    addSectionButton.addEventListener("click", () => {
+      state.budgetTree.push(createSection());
+      saveState(state);
+      refreshBudget(state);
+    });
+  }
 
-  const addEntryButton = document.getElementById("add-entry-button");
-  addEntryButton.addEventListener("click", () => {
-    state.budgetTree.push(createItem());
-    saveState(state);
-    refreshBudget(state);
-  });
+  const addEntryButton = document.getElementById(addEntryId);
+  if (addEntryButton) {
+    addEntryButton.addEventListener("click", () => {
+      state.budgetTree.push(createItem());
+      saveState(state);
+      refreshBudget(state);
+    });
+  }
+
+  const rebalanceButton = document.getElementById(rebalanceId);
+  if (rebalanceButton) {
+    rebalanceButton.addEventListener("click", () => {
+      rebalanceBudgetTree(state);
+      saveState(state);
+      refreshBudget(state);
+    });
+  }
 };
 
 const resetState = (state) => {
@@ -1082,7 +1209,12 @@ const init = () => {
   saveState(state);
   attachModelInputs(state);
   refreshBudget(state);
-  bindBudgetListeners(state);
+  bindBudgetListeners(state, {
+    treeId: "budget-tree",
+    addEntryId: "add-entry-button",
+    addSectionId: "add-section-button",
+    rebalanceId: "rebalance-button"
+  });
   applyCardCollapse(state);
 
   const resetButton = document.getElementById("reset-button");
@@ -1092,22 +1224,6 @@ const init = () => {
     updateInputsFromState(state);
     refreshBudget(state);
     applyCardCollapse(state);
-  });
-
-  const rebalanceButton = document.getElementById("rebalance-button");
-  rebalanceButton.addEventListener("click", () => {
-    rebalanceBudgetTree(state);
-    saveState(state);
-    refreshBudget(state);
-  });
-
-  const syncTargetButton = document.getElementById("sync-target-net");
-  syncTargetButton.addEventListener("click", () => {
-    const calculations = calculatePay(state);
-    state.targetBudgetMonthly = calculations.net.month;
-    saveState(state);
-    document.querySelector('[data-model="targetBudgetMonthly"]').value = state.targetBudgetMonthly;
-    refreshBudget(state);
   });
 
   const tabButtons = document.querySelectorAll(".view-tabs .tab");
