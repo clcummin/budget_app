@@ -24,6 +24,51 @@
     </div>
   </header>
 
+  <nav class="view-tabs">
+    <button class="tab active" data-view-target="planner">Planner</button>
+    <button class="tab" data-view-target="insights">Insights</button>
+  </nav>
+
+  <main class="page-views">
+    <section id="planner-view" class="layout view active">
+      <section class="card span-2">
+        <div class="card-header">
+          <div>
+            <h2>Budget tracking</h2>
+            <p>Track target vs. actual spend for the month and keep an eye on how you are pacing.</p>
+          </div>
+          <div class="inline-actions">
+            <button id="sync-target-net" class="ghost">Set target to net pay</button>
+          </div>
+        </div>
+        <div class="budget-track-grid">
+          <div class="grid two">
+            <label class="field">
+              <span>Target budget (monthly)</span>
+              <input type="number" data-model="targetBudgetMonthly" inputmode="decimal" />
+            </label>
+            <label class="field">
+              <span>Actual spend this month</span>
+              <input type="number" data-model="actualSpentMonthly" inputmode="decimal" />
+            </label>
+          </div>
+          <div class="progress-panel">
+            <div class="progress-meta">
+              <div>
+                <p class="muted">Variance</p>
+                <p class="metric" id="variance-amount">$0</p>
+              </div>
+              <div>
+                <p class="muted">Status</p>
+                <p class="metric" id="variance-status">Even</p>
+              </div>
+            </div>
+            <canvas id="target-progress-chart" height="110"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="card span-2">
   <main class="layout">
     <section class="card span-2" data-collapsible="income">
       <div class="card-header">
@@ -262,6 +307,59 @@
           </div>
         </div>
       </div>
+      </section>
+    </main>
+
+    <section id="insights-view" class="layout view">
+      <section class="card span-2">
+        <div class="card-header">
+          <div>
+            <h2>Annual outlook</h2>
+            <p>See how much of your planned income is allocated and what remains unassigned.</p>
+          </div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat">
+            <p class="muted">Net annual income</p>
+            <p class="metric" id="net-annual-stat">$0</p>
+            <p class="muted subtle" id="net-monthly-stat">Monthly: $0</p>
+          </div>
+          <div class="stat">
+            <p class="muted">Planned annual spend</p>
+            <p class="metric" id="planned-annual-stat">$0</p>
+            <p class="muted subtle" id="planned-monthly-stat">Monthly: $0</p>
+          </div>
+          <div class="stat">
+            <p class="muted">Unassigned cushion</p>
+            <p class="metric" id="unassigned-annual-stat">$0</p>
+            <p class="muted subtle" id="unassigned-monthly-stat">Monthly: $0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2>Annual category amounts</h2>
+            <p>Bar view of projected annual amounts per budget item.</p>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="category-bar-chart" height="320"></canvas>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2>Category mix</h2>
+            <p>See how your monthly budget splits across categories.</p>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="category-pie-chart" height="320"></canvas>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -271,6 +369,7 @@
     </p>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="script.js"></script>
 </body>
 </html>

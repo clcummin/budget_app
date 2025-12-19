@@ -53,6 +53,34 @@ p {
   letter-spacing: -0.02em;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 0 32px 12px;
+  position: sticky;
+  top: 96px;
+  background: linear-gradient(180deg, rgba(12, 17, 29, 0.95), rgba(12, 17, 29, 0.6) 60%, transparent);
+  backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+.tab {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.tab.active {
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+}
+
 .eyebrow {
   text-transform: uppercase;
   color: var(--accent-2);
@@ -78,6 +106,19 @@ p {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 18px;
+}
+
+.page-views {
+  display: flex;
+  flex-direction: column;
+}
+
+.view {
+  width: 100%;
+}
+
+.view:not(.active) {
+  display: none;
 }
 
 .card {
@@ -207,6 +248,40 @@ p {
   font-size: 13px;
 }
 
+.budget-track-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.progress-panel {
+  background: rgba(17, 24, 39, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.metric {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.subtle {
+  font-size: 14px;
+}
+
 .inline-actions {
   display: flex;
   gap: 10px;
@@ -311,6 +386,31 @@ p {
   color: var(--muted);
 }
 
+.chart-wrapper {
+  position: relative;
+  z-index: 1;
+  padding: 6px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .tree-row {
   align-items: flex-start;
 }
@@ -398,6 +498,10 @@ p {
 @media (max-width: 840px) {
   .page-header {
     flex-direction: column;
+  }
+
+  .budget-track-grid {
+    grid-template-columns: 1fr;
   }
 
   .summary-row {
