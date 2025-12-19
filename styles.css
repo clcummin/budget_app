@@ -244,6 +244,22 @@ p {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.field input[type="number"],
+.simple-row input[type="number"],
+.budget-row input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.field input[type="number"]::-webkit-outer-spin-button,
+.field input[type="number"]::-webkit-inner-spin-button,
+.simple-row input[type="number"]::-webkit-outer-spin-button,
+.simple-row input[type="number"]::-webkit-inner-spin-button,
+.budget-row input[type="number"]::-webkit-outer-spin-button,
+.budget-row input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .field select {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -732,4 +748,83 @@ p {
   .simple-row {
     grid-template-columns: 1fr;
   }
+}
+.card-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 12px;
+  margin: 0 0 6px 2px;
+  background: rgba(124, 58, 237, 0.14);
+  color: #fff;
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  border-radius: 10px 10px 0 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.card-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.info-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.info-icon::before {
+  content: "i";
+  font-size: 14px;
+}
+
+.info-icon:hover,
+.info-icon:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.info-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(17, 24, 39, 0.95);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: max-content;
+  max-width: 320px;
+  white-space: pre-wrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+  z-index: 5;
+}
+
+.info-icon:hover::after,
+.info-icon:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, -4px);
+}
+
+.info-icon:focus-visible::after {
+  pointer-events: auto;
 }

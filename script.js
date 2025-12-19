@@ -442,11 +442,14 @@ const recalcDerivedFields = (state) => {
   });
 };
 
-const updateInputsFromState = (state) => {
+const updateInputsFromState = (state, options = {}) => {
+  const skipActive = options.skipActive ?? false;
+  const active = document.activeElement;
   document.querySelectorAll("[data-model]").forEach((input) => {
     const key = input.dataset.model;
     if (!(key in state)) return;
     const value = state[key];
+    if (skipActive && active === input && !input.readOnly) return;
     input.value = value ?? "";
   });
 };
@@ -657,9 +660,41 @@ const renderTaxFields = (calculated) => {
   if (stateBracketField) stateBracketField.textContent = stateBracketLabel;
 };
 
+const captureActiveField = (container) => {
+  const active = document.activeElement;
+  if (!container || !container.contains(active)) return null;
+  const row = active.closest("[data-id]");
+  if (!row) return null;
+  const field = active.dataset.field;
+  if (!field) return null;
+  return {
+    id: row.dataset.id,
+    field,
+    selectionStart: active.selectionStart,
+    selectionEnd: active.selectionEnd
+  };
+};
+
+const restoreActiveField = (container, focusState) => {
+  if (!container || !focusState) return;
+  const target = container.querySelector(`[data-id="${focusState.id}"] [data-field="${focusState.field}"]`);
+  if (!target) return;
+  target.focus({ preventScroll: true });
+  if (
+    typeof focusState.selectionStart === "number" &&
+    typeof focusState.selectionEnd === "number" &&
+    target.setSelectionRange
+  ) {
+    const start = Math.min(focusState.selectionStart, target.value.length);
+    const end = Math.min(focusState.selectionEnd, target.value.length);
+    target.setSelectionRange(start, end);
+  }
+};
+
 const renderLineItemList = (items, containerId, periods, emptyText) => {
   const container = document.getElementById(containerId);
   if (!container) return;
+  const focusState = captureActiveField(container);
   container.innerHTML = "";
 
   if (!items.length) {
@@ -711,6 +746,8 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     row.appendChild(remove);
     container.appendChild(row);
   });
+
+  restoreActiveField(container, focusState);
 };
 
 const updateLineItem = (list, id, field, value) => {
@@ -1131,6 +1168,8 @@ const renderBudgetTree = (state, netMonthly, config) => {
   const container = document.getElementById(treeId);
   if (!container) return;
 
+  const focusState = captureActiveField(container);
+
   container.innerHTML = "";
 
   const buildRow = (node, depth) => {
@@ -1299,6 +1338,8 @@ const renderBudgetTree = (state, netMonthly, config) => {
     unusedEl.textContent =
       netMonthly > 0 ? `${unused >= 0 ? "Unused" : "Over budget"}: ${currency(unused)}` : "Enter pay details to see unused amounts.";
   }
+
+  restoreActiveField(container, focusState);
 };
 
 const rebalanceBudgetTree = (state) => {
@@ -1356,7 +1397,7 @@ const attachModelInputs = (state) => {
       state[key] = raw === "" ? "" : numeric;
       recalcDerivedFields(state);
       saveState(state);
-      updateInputsFromState(state);
+      updateInputsFromState(state, { skipActive: true });
       refreshBudget(state);
     });
   });
