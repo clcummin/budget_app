@@ -29,49 +29,13 @@
   </header>
 
   <nav class="view-tabs">
-    <button class="tab active" data-view-target="planner">Planner</button>
+    <button class="tab active" data-view-target="income">Income</button>
+    <button class="tab" data-view-target="budget">Budget</button>
     <button class="tab" data-view-target="insights">Insights</button>
   </nav>
 
   <main class="page-views">
-    <section id="planner-view" class="layout view active">
-      <section class="card span-2">
-        <div class="card-header">
-          <div>
-            <h2>Budget tracking</h2>
-            <p>Track target vs. actual spend for the month and keep an eye on how you are pacing.</p>
-          </div>
-          <div class="inline-actions">
-            <button id="sync-target-net" class="ghost">Set target to net pay</button>
-          </div>
-        </div>
-        <div class="budget-track-grid">
-          <div class="grid two">
-            <label class="field">
-              <span>Target budget (monthly)</span>
-              <input type="number" data-model="targetBudgetMonthly" inputmode="decimal" />
-            </label>
-            <label class="field">
-              <span>Actual spend this month</span>
-              <input type="number" data-model="actualSpentMonthly" inputmode="decimal" />
-            </label>
-          </div>
-          <div class="progress-panel">
-            <div class="progress-meta">
-              <div>
-                <p class="muted">Variance</p>
-                <p class="metric" id="variance-amount">$0</p>
-              </div>
-              <div>
-                <p class="muted">Status</p>
-                <p class="metric" id="variance-status">Even</p>
-              </div>
-            </div>
-            <canvas id="target-progress-chart" height="110"></canvas>
-          </div>
-        </div>
-      </section>
-
+    <section id="income-view" class="layout view active">
       <section class="card" data-collapsible="income">
         <div class="card-header">
           <div>
@@ -168,7 +132,7 @@
         <div class="card-header">
           <div>
             <h2>Tax settings</h2>
-            <p>Uses 2024 IRS brackets (single filer) and current FICA rates. The expected bracket auto-fills—override if needed.</p>
+            <p>Uses 2025 IRS brackets (single filer) and current FICA rates. The expected bracket auto-fills—override if needed.</p>
           </div>
           <div class="card-tools">
             <button class="ghost collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true">Collapse</button>
@@ -335,6 +299,7 @@
             </div>
             <button class="ghost collapse-toggle" data-collapsible-toggle="summary" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-summary"></div>
         </div>
         <div class="card-body">
           <div class="summary">
@@ -369,6 +334,24 @@
           </div>
         </div>
       </section>
+    </section>
+
+    <section id="budget-view" class="layout view">
+      <section class="card span-2" data-collapsible="bucket-overview">
+        <div class="card-header">
+          <div>
+            <h2>Budget bucket targets</h2>
+            <p>Set a target percent for each section, compare to the current plan, and spot areas to trim or expand.</p>
+          </div>
+          <div class="card-tools">
+            <button class="ghost collapse-toggle" data-collapsible-toggle="bucket-overview" aria-expanded="true">Collapse</button>
+          </div>
+          <div class="card-peek" id="peek-bucket-targets"></div>
+        </div>
+        <div class="card-body">
+          <div id="bucket-targets" class="bucket-targets"></div>
+        </div>
+      </section>
 
       <section class="card span-2" data-collapsible="budget">
         <div class="card-header">
@@ -384,18 +367,21 @@
             </div>
             <button class="ghost collapse-toggle" data-collapsible-toggle="budget" aria-expanded="true">Collapse</button>
           </div>
+          <div class="card-peek" id="peek-budget"></div>
         </div>
         <div class="card-body">
           <div class="budget-table">
             <div class="budget-head">
               <span>Section / category</span>
-              <span>Percent of net</span>
+              <span>Target %</span>
+              <span>Planned %</span>
               <span>Monthly amount</span>
               <span>Notes &amp; actions</span>
             </div>
             <div id="budget-tree" class="budget-tree"></div>
             <div class="budget-foot">
               <span>Total</span>
+              <span>-</span>
               <span id="budget-percent-total">0%</span>
               <span id="budget-amount-total">$0</span>
               <span id="unused-money"></span>

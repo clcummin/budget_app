@@ -170,6 +170,29 @@ p {
   margin-bottom: 0;
 }
 
+.card.collapsed {
+  padding-bottom: 12px;
+}
+
+.card-peek {
+  display: none;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.card-peek span {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.card.collapsed .card-peek {
+  display: flex;
+}
+
 .card-header h2 {
   font-size: 20px;
   margin-bottom: 6px;
@@ -295,32 +318,6 @@ p {
   border-color: rgba(16, 185, 129, 0.4);
 }
 
-.budget-track-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.progress-panel {
-  background: rgba(17, 24, 39, 0.7);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-}
-
-.progress-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.metric {
-  font-size: 22px;
-  font-weight: 700;
-}
-
 .muted {
   color: var(--muted);
 }
@@ -442,7 +439,7 @@ p {
 .budget-head,
 .budget-foot {
   display: grid;
-  grid-template-columns: 1.2fr 0.6fr 0.8fr 1fr;
+  grid-template-columns: 1.2fr 0.45fr 0.45fr 0.8fr 1fr;
   gap: 10px;
   padding: 14px 16px;
   background: rgba(15, 23, 42, 0.9);
@@ -451,7 +448,7 @@ p {
 
 .budget-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.6fr 0.8fr 1fr;
+  grid-template-columns: 1.2fr 0.45fr 0.45fr 0.8fr 1fr;
   gap: 10px;
   padding: 12px 16px;
   align-items: center;
@@ -481,6 +478,56 @@ p {
 
 .budget-foot span:last-child {
   color: var(--muted);
+}
+
+.bucket-targets {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.bucket-target {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(17, 24, 39, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bucket-target__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bucket-target__title {
+  font-weight: 700;
+}
+
+.bucket-target__amount {
+  color: var(--muted);
+}
+
+.bucket-target__row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.bucket-target__delta {
+  font-weight: 600;
+}
+
+.bucket-target__delta.over {
+  color: #fca5a5;
+}
+
+.bucket-target__delta.under {
+  color: #34d399;
 }
 
 .chart-wrapper {
@@ -595,10 +642,6 @@ p {
 @media (max-width: 840px) {
   .page-header {
     flex-direction: column;
-  }
-
-  .budget-track-grid {
-    grid-template-columns: 1fr;
   }
 
   .summary-row {
