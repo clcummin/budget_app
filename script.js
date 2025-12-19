@@ -1,5 +1,50 @@
 const STORAGE_KEY = "budget-planner-state-v4";
 const SOCIAL_SECURITY_WAGE_BASE = 174600; // 2025 wage base
+const MEDICARE_SURTAX_DEFAULT_THRESHOLD = 200000;
+const MENTAL_HEALTH_SURCHARGE_RATE = 0.01;
+const MENTAL_HEALTH_SURCHARGE_THRESHOLD = 1000000;
+
+const CA_BRACKETS_2025 = {
+  single: [
+    { upTo: 11079, rate: 0.01 },
+    { upTo: 26275, rate: 0.02 },
+    { upTo: 41471, rate: 0.04 },
+    { upTo: 57645, rate: 0.06 },
+    { upTo: 72841, rate: 0.08 },
+    { upTo: 371994, rate: 0.093 },
+    { upTo: 446392, rate: 0.103 },
+    { upTo: 742953, rate: 0.113 },
+    { upTo: Infinity, rate: 0.123 }
+  ],
+  married: [
+    { upTo: 22158, rate: 0.01 },
+    { upTo: 52550, rate: 0.02 },
+    { upTo: 82942, rate: 0.04 },
+    { upTo: 115290, rate: 0.06 },
+    { upTo: 145682, rate: 0.08 },
+    { upTo: 743988, rate: 0.093 },
+    { upTo: 892784, rate: 0.103 },
+    { upTo: 1485906, rate: 0.113 },
+    { upTo: Infinity, rate: 0.123 }
+  ],
+  hoh: [
+    { upTo: 22173, rate: 0.01 },
+    { upTo: 52576, rate: 0.02 },
+    { upTo: 67994, rate: 0.04 },
+    { upTo: 83639, rate: 0.06 },
+    { upTo: 98382, rate: 0.08 },
+    { upTo: 504013, rate: 0.093 },
+    { upTo: 604816, rate: 0.103 },
+    { upTo: 1010417, rate: 0.113 },
+    { upTo: Infinity, rate: 0.123 }
+  ]
+};
+
+const CA_FILING_LABELS = {
+  single: "Single / MFS",
+  married: "Married / QSS",
+  hoh: "Head of household"
+};
 
 const FEDERAL_BRACKETS_2025_SINGLE = [
   { upTo: 11975, rate: 0.1 },
@@ -110,19 +155,16 @@ const defaultState = {
   otherPretaxPerPay: 0,
   federalBracketOverride: null,
   federalRate: 0,
-  stateRate: 6,
+  stateBracketOverride: null,
+  stateFilingStatus: "single",
+  stateRate: 0,
   socialSecurityRate: 6.2,
   medicareRate: 1.45,
+  medicareSurtaxRate: 0.9,
+  medicareSurtaxThreshold: MEDICARE_SURTAX_DEFAULT_THRESHOLD,
   sdiRate: 1,
-  ltdAnnual: 0,
-  ltdPerPay: 0,
-  esppPercent: 5,
-  rentAnnual: 0,
-  rentPerPay: 0,
-  gymAnnual: 0,
-  gymPerPay: 0,
-  phoneAnnual: 0,
-  phonePerPay: 0,
+  afterTaxDeductions: [],
+  additionalIncomeItems: [],
   budgetTree: structuredClone(defaultBudgetTree),
   collapsedCards: {
     income: false,
@@ -154,6 +196,25 @@ const coerceNumber = (value) => {
 };
 
 const generateId = () => `id-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
+
+const createLineItem = (title = "New entry") => ({
+  id: generateId(),
+  title,
+  perPay: 0,
+  note: ""
+});
+
+const sanitizeFilingStatus = (value) => (["single", "married", "hoh"].includes(value) ? value : "single");
+
+const sanitizeLineItems = (items = []) =>
+  (Array.isArray(items) ? items : [])
+    .filter(Boolean)
+    .map((item) => ({
+      id: item.id ?? generateId(),
+      title: item.title ?? item.label ?? "New entry",
+      perPay: coerceNumber(item.perPay),
+      note: item.note ?? ""
+    }));
 
 const sanitizeTree = (nodes = []) =>
   nodes
@@ -212,6 +273,47 @@ const loadState = () => {
   } else {
     merged.budgetTree = structuredClone(defaultBudgetTree);
   }
+
+  const periods = Math.max(1, coerceNumber(merged.periodsPerYear) || 26);
+  merged.stateFilingStatus = sanitizeFilingStatus(parsed.stateFilingStatus ?? merged.stateFilingStatus);
+  merged.afterTaxDeductions = sanitizeLineItems(parsed.afterTaxDeductions);
+  if (merged.afterTaxDeductions.length === 0) {
+    const legacy = [];
+    const grossPay = coerceNumber(parsed.salaryPerPay) || (coerceNumber(parsed.salaryAnnual) / periods || 0);
+    const esppPercent = coerceNumber(parsed.esppPercent);
+    if (grossPay > 0 && esppPercent > 0) {
+      legacy.push({ title: "ESPP", perPay: grossPay * (esppPercent / 100) });
+    }
+    const ltdAnnual = coerceNumber(parsed.ltdAnnual);
+    const ltdPerPay = coerceNumber(parsed.ltdPerPay);
+    const ltdValue = ltdAnnual > 0 ? ltdAnnual / periods : ltdPerPay;
+    if (ltdValue > 0) {
+      legacy.push({ title: "LTD", perPay: ltdValue });
+    }
+    merged.afterTaxDeductions = sanitizeLineItems(legacy);
+  }
+
+  merged.additionalIncomeItems = sanitizeLineItems(parsed.additionalIncomeItems);
+  if (merged.additionalIncomeItems.length === 0) {
+    const legacyIncome = [];
+    const rentAnnual = coerceNumber(parsed.rentAnnual);
+    const rentPerPay = coerceNumber(parsed.rentPerPay);
+    const rentValue = rentAnnual > 0 ? rentAnnual / periods : rentPerPay;
+    if (rentValue > 0) legacyIncome.push({ title: "Rent stipend", perPay: rentValue, note: "Migrated" });
+
+    const gymAnnual = coerceNumber(parsed.gymAnnual);
+    const gymPerPay = coerceNumber(parsed.gymPerPay);
+    const gymValue = gymAnnual > 0 ? gymAnnual / periods : gymPerPay;
+    if (gymValue > 0) legacyIncome.push({ title: "Gym credit", perPay: gymValue, note: "Migrated" });
+
+    const phoneAnnual = coerceNumber(parsed.phoneAnnual);
+    const phonePerPay = coerceNumber(parsed.phonePerPay);
+    const phoneValue = phoneAnnual > 0 ? phoneAnnual / periods : phonePerPay;
+    if (phoneValue > 0) legacyIncome.push({ title: "Phone credit", perPay: phoneValue, note: "Migrated" });
+
+    merged.additionalIncomeItems = sanitizeLineItems(legacyIncome);
+  }
+
   return merged;
 };
 
@@ -253,6 +355,47 @@ const findFederalBracket = (annualTaxableIncome) => {
   return { lower: 0, upper: Infinity, rate: 0 };
 };
 
+const getStateBracketsForStatus = (status) => CA_BRACKETS_2025[sanitizeFilingStatus(status)] ?? CA_BRACKETS_2025.single;
+
+const calculateStateAnnualTax = (annualTaxableIncome, flatRateOverride, filingStatus) => {
+  if (Number.isFinite(flatRateOverride) && flatRateOverride > 0) {
+    const base = annualTaxableIncome * flatRateOverride;
+    const surcharge = Math.max(0, annualTaxableIncome - MENTAL_HEALTH_SURCHARGE_THRESHOLD) * MENTAL_HEALTH_SURCHARGE_RATE;
+    return { base, surcharge, total: base + surcharge };
+  }
+  let tax = 0;
+  let lowerBound = 0;
+
+  const brackets = getStateBracketsForStatus(filingStatus);
+  for (const bracket of brackets) {
+    const upper = bracket.upTo;
+    const rate = bracket.rate;
+    const taxableInBracket = Math.min(annualTaxableIncome, upper) - lowerBound;
+    if (taxableInBracket <= 0) break;
+    tax += taxableInBracket * rate;
+    if (annualTaxableIncome <= upper) break;
+    lowerBound = upper;
+  }
+
+  const surcharge = Math.max(0, annualTaxableIncome - MENTAL_HEALTH_SURCHARGE_THRESHOLD) * MENTAL_HEALTH_SURCHARGE_RATE;
+  return { base: tax, surcharge, total: tax + surcharge };
+};
+
+const findStateBracket = (annualTaxableIncome, filingStatus) => {
+  let lowerBound = 0;
+
+  const brackets = getStateBracketsForStatus(filingStatus);
+  for (const bracket of brackets) {
+    const upper = bracket.upTo;
+    if (annualTaxableIncome <= upper) {
+      return { lower: lowerBound, upper, rate: bracket.rate };
+    }
+    lowerBound = upper;
+  }
+
+  return { lower: 0, upper: Infinity, rate: 0 };
+};
+
 const rangeLabel = (lower, upper) => {
   const lowerLabel = currency(lower);
   if (!Number.isFinite(upper)) return `${lowerLabel} and up`;
@@ -273,11 +416,7 @@ const recalcDerivedFields = (state) => {
     ["hsaAnnual", "hsaPerPay"],
     ["dentalAnnual", "dentalPerPay"],
     ["medicalAnnual", "medicalPerPay"],
-    ["otherPretaxAnnual", "otherPretaxPerPay"],
-    ["ltdAnnual", "ltdPerPay"],
-    ["rentAnnual", "rentPerPay"],
-    ["gymAnnual", "gymPerPay"],
-    ["phoneAnnual", "phonePerPay"]
+    ["otherPretaxAnnual", "otherPretaxPerPay"]
   ];
 
   pairs.forEach(([annualKey, perPayKey]) => {
@@ -339,27 +478,32 @@ const calculatePay = (state) => {
   const federalExtraWithholding = w4ExtraAnnual / periods;
   const federalTax = federalFromBrackets + federalExtraPercent + federalExtraWithholding;
 
-  const stateTax = taxableIncome * (coerceNumber(state.stateRate) / 100);
+  const filingStatus = sanitizeFilingStatus(state.stateFilingStatus);
+  const stateBracketOverrideRate = coerceNumber(state.stateBracketOverride);
+  const stateOverrideActive = Number.isFinite(stateBracketOverrideRate) && stateBracketOverrideRate > 0;
+  const expectedStateBracket = findStateBracket(annualTaxable, filingStatus);
+  const stateOverrideDecimal = stateOverrideActive ? stateBracketOverrideRate / 100 : null;
+  const usedStateRate = (stateOverrideDecimal ?? expectedStateBracket.rate) * 100;
+  const stateTaxAnnuals = calculateStateAnnualTax(annualTaxable, stateOverrideDecimal, filingStatus);
+  const stateExtraAnnual = annualTaxable * (coerceNumber(state.stateRate) / 100);
+  const stateTaxBase = stateTaxAnnuals.base / periods;
+  const stateMentalHealth = stateTaxAnnuals.surcharge / periods;
+  const stateTax = (stateTaxAnnuals.total + stateExtraAnnual) / periods;
+
   const socialSecurityTax =
     (Math.min(annualTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) / periods;
   const medicareTax = (annualTaxable * (coerceNumber(state.medicareRate) / 100)) / periods;
+  const medicareSurtaxRate = coerceNumber(state.medicareSurtaxRate) / 100;
+  const medicareSurtaxThreshold = coerceNumber(state.medicareSurtaxThreshold) || MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+  const medicareSurtaxAnnual = Math.max(0, annualTaxable - medicareSurtaxThreshold) * medicareSurtaxRate;
+  const medicareSurtax = medicareSurtaxAnnual / periods;
   const sdiTax = taxableIncome * (coerceNumber(state.sdiRate) / 100);
-  const taxes = federalTax + stateTax + socialSecurityTax + medicareTax + sdiTax;
+  const taxes = federalTax + stateTax + socialSecurityTax + medicareTax + medicareSurtax + sdiTax;
 
-  const espp = grossPay * (coerceNumber(state.esppPercent) / 100);
-  const ltdAnnual = annualFromState(state, "ltdAnnual", "ltdPerPay", periods);
-  const ltdPerPay = ltdAnnual / periods;
-  const postTax = espp + ltdPerPay;
+  const afterTaxPerPay = state.afterTaxDeductions.reduce((sum, item) => sum + coerceNumber(item.perPay), 0);
+  const postTax = afterTaxPerPay;
 
-  const rentAnnual = annualFromState(state, "rentAnnual", "rentPerPay", periods);
-  const gymAnnual = annualFromState(state, "gymAnnual", "gymPerPay", periods);
-  const phoneAnnual = annualFromState(state, "phoneAnnual", "phonePerPay", periods);
-
-  const rentPerPay = rentAnnual / periods;
-  const gymPerPay = gymAnnual / periods;
-  const phonePerPay = phoneAnnual / periods;
-
-  const additionalIncome = rentPerPay + gymPerPay + phonePerPay;
+  const additionalIncome = state.additionalIncomeItems.reduce((sum, item) => sum + coerceNumber(item.perPay), 0);
   const netPay = grossPay - pretax - taxes - postTax + additionalIncome;
 
   const toMonth = (value) => (value * periods) / 12;
@@ -380,6 +524,9 @@ const calculatePay = (state) => {
       annualTaxable,
       expectedFederalBracket,
       usedFederalRate,
+      expectedStateBracket,
+      usedStateRate,
+      stateFilingStatus: filingStatus,
       effectiveFederalRate:
         annualTaxable > 0 ? (calculateFederalAnnualTax(annualTaxable, overrideRateDecimal) / annualTaxable) * 100 : 0,
       pretaxBreakdown: {
@@ -390,21 +537,21 @@ const calculatePay = (state) => {
         other: bundle(otherPretaxPerPay)
       },
       postTaxBreakdown: {
-        espp: bundle(espp),
-        ltd: bundle(ltdPerPay)
+        items: state.afterTaxDeductions.map((item) => ({ label: item.title, bundle: bundle(coerceNumber(item.perPay)) }))
       },
       additionalBreakdown: {
-        rent: bundle(rentPerPay),
-        gym: bundle(gymPerPay),
-        phone: bundle(phonePerPay)
+        items: state.additionalIncomeItems.map((item) => ({ label: item.title, bundle: bundle(coerceNumber(item.perPay)) }))
       },
       taxBreakdown: {
         federalBracket: bundle(federalFromBrackets),
         federalExtraPercent: bundle(federalExtraPercent),
         federalW4: bundle(federalExtraWithholding),
+        stateBase: bundle(stateTaxBase),
+        stateMentalHealth: bundle(stateMentalHealth),
         state: bundle(stateTax),
         socialSecurity: bundle(socialSecurityTax),
         medicare: bundle(medicareTax),
+        medicareSurtax: bundle(medicareSurtax),
         sdi: bundle(sdiTax)
       }
     }
@@ -442,9 +589,12 @@ const renderSummary = (calculated) => {
       ["federalBracket", "Federal (marginal)"],
       ["federalExtraPercent", "Federal extra %"],
       ["federalW4", "Federal W-4 extra"],
+      ["stateBase", "CA base tax"],
+      ["stateMentalHealth", "CA mental health surcharge"],
       ["state", "State"],
       ["socialSecurity", "Social Security"],
       ["medicare", "Medicare"],
+      ["medicareSurtax", "Medicare surtax"],
       ["sdi", "State disability / VDI"]
     ]
   );
@@ -453,8 +603,11 @@ const renderSummary = (calculated) => {
 const renderBreakdownList = (target, breakdown, labelMap) => {
   if (!target) return;
   target.innerHTML = "";
-  Object.entries(breakdown).forEach(([key, bundle]) => {
-    const label = labelMap[key] ?? key;
+  const entries = Array.isArray(breakdown)
+    ? breakdown.map((entry) => [entry.label, entry.bundle])
+    : Object.entries(breakdown).map(([key, bundle]) => [labelMap?.[key] ?? key, bundle]);
+
+  entries.forEach(([label, bundle]) => {
     const item = document.createElement("li");
     item.textContent = `${label}: ${currency(bundle.year)} / yr (${currency(bundle.month)} / mo)`;
     target.appendChild(item);
@@ -487,16 +640,31 @@ const renderSummaryBreakdown = (target, breakdown, entries = []) => {
 
 const renderSnapshot = (calculated) => {
   const { details } = calculated;
-  const { expectedFederalBracket, usedFederalRate, effectiveFederalRate } = details;
+  const {
+    expectedFederalBracket,
+    usedFederalRate,
+    effectiveFederalRate,
+    expectedStateBracket,
+    usedStateRate,
+    stateFilingStatus
+  } = details;
   const bracketLabel = `${usedFederalRate.toFixed(1)}% marginal (${rangeLabel(
     expectedFederalBracket.lower,
     expectedFederalBracket.upper
   )})`;
+  const stateBracketLabel = `${usedStateRate.toFixed(1)}% marginal (${rangeLabel(
+    expectedStateBracket.lower,
+    expectedStateBracket.upper
+  )}) (${CA_FILING_LABELS[sanitizeFilingStatus(stateFilingStatus)]})`;
 
   const bracketField = document.querySelector('[data-output="federalBracket"]');
   if (bracketField) bracketField.textContent = bracketLabel;
   const bracketTile = document.querySelector('[data-output="federalBracketLabel"]');
   if (bracketTile) bracketTile.textContent = bracketLabel;
+  const stateBracketTile = document.querySelector('[data-output="stateBracketLabel"]');
+  if (stateBracketTile) stateBracketTile.textContent = stateBracketLabel;
+  const stateBracketField = document.querySelector('[data-output="stateBracket"]');
+  if (stateBracketField) stateBracketField.textContent = stateBracketLabel;
 
   const effectiveField = document.querySelector('[data-output="effectiveFederal"]');
   if (effectiveField) effectiveField.textContent = `Effective: ${effectiveFederalRate.toFixed(1)}% of taxable income`;
@@ -521,14 +689,116 @@ const renderSnapshot = (calculated) => {
   );
   renderBreakdownList(
     document.querySelector('[data-output="posttaxBreakdown"]'),
-    details.postTaxBreakdown,
-    { espp: "ESPP", ltd: "LTD" }
+    details.postTaxBreakdown.items ?? []
   );
   renderBreakdownList(
     document.querySelector('[data-output="additionalBreakdown"]'),
-    details.additionalBreakdown,
-    { rent: "Rent stipend", gym: "Gym credit", phone: "Phone credit" }
+    details.additionalBreakdown.items ?? []
   );
+};
+
+const renderLineItemList = (items, containerId, periods, emptyText) => {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = emptyText ?? "No entries yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "simple-row";
+    row.dataset.id = item.id;
+
+    const title = document.createElement("input");
+    title.type = "text";
+    title.value = item.title ?? "";
+    title.dataset.field = "title";
+
+    const perPay = document.createElement("input");
+    perPay.type = "number";
+    perPay.step = "0.01";
+    perPay.inputMode = "decimal";
+    perPay.value = coerceNumber(item.perPay).toFixed(2);
+    perPay.dataset.field = "perPay";
+
+    const annual = document.createElement("span");
+    annual.className = "simple-row__annual";
+    annual.textContent = currency(coerceNumber(item.perPay) * periods);
+
+    const note = document.createElement("input");
+    note.type = "text";
+    note.value = item.note ?? "";
+    note.placeholder = "Note";
+    note.dataset.field = "note";
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "action-chip danger";
+    remove.textContent = "Delete";
+    remove.dataset.action = "delete";
+
+    row.appendChild(title);
+    row.appendChild(perPay);
+    row.appendChild(annual);
+    row.appendChild(note);
+    row.appendChild(remove);
+    container.appendChild(row);
+  });
+};
+
+const updateLineItem = (list, id, field, value) => {
+  const item = list.find((entry) => entry.id === id);
+  if (!item) return false;
+  if (field === "title") item.title = value;
+  if (field === "note") item.note = value;
+  if (field === "perPay") item.perPay = coerceNumber(value);
+  return true;
+};
+
+const bindLineItemList = (state, config) => {
+  const { containerId, addButtonId, listKey } = config;
+  const container = document.getElementById(containerId);
+  const addButton = document.getElementById(addButtonId);
+  if (container) {
+    container.addEventListener("input", (event) => {
+      const field = event.target.dataset.field;
+      if (!field) return;
+      const row = event.target.closest(".simple-row");
+      if (!row) return;
+      const updated = updateLineItem(state[listKey], row.dataset.id, field, event.target.value);
+      if (updated) {
+        saveState(state);
+        refreshBudget(state);
+      }
+    });
+
+    container.addEventListener("click", (event) => {
+      const action = event.target.dataset.action;
+      if (action !== "delete") return;
+      const row = event.target.closest(".simple-row");
+      if (!row) return;
+      const index = state[listKey].findIndex((item) => item.id === row.dataset.id);
+      if (index >= 0) {
+        state[listKey].splice(index, 1);
+        saveState(state);
+        refreshBudget(state);
+      }
+    });
+  }
+
+  if (addButton) {
+    addButton.addEventListener("click", () => {
+      state[listKey].push(createLineItem());
+      saveState(state);
+      refreshBudget(state);
+    });
+  }
 };
 
 const calculateNodeTotals = (node, netMonthly) => {
@@ -1038,8 +1308,11 @@ const rebalanceBudgetTree = (state) => {
 };
 
 const refreshBudget = (state) => {
+  const periods = Math.max(1, coerceNumber(state.periodsPerYear));
   const calculations = calculatePay(state);
   const netMonthly = calculations.net.month;
+  renderLineItemList(state.afterTaxDeductions, "after-tax-list", periods, "Add an after-tax deduction to get started.");
+  renderLineItemList(state.additionalIncomeItems, "additional-income-list", periods, "Add income credits or stipends.");
   renderSummary(calculations);
   renderSnapshot(calculations);
   renderBudgetTree(state, netMonthly, {
@@ -1259,6 +1532,12 @@ const init = () => {
   saveState(state);
   attachModelInputs(state);
   refreshBudget(state);
+  bindLineItemList(state, { containerId: "after-tax-list", addButtonId: "add-after-tax", listKey: "afterTaxDeductions" });
+  bindLineItemList(state, {
+    containerId: "additional-income-list",
+    addButtonId: "add-additional-income",
+    listKey: "additionalIncomeItems"
+  });
   bindBudgetListeners(state, {
     treeId: "budget-tree",
     addEntryId: "add-entry-button",

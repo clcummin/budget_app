@@ -244,6 +244,15 @@ p {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.field select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 16px;
+}
+
 .field.entry input {
   background: var(--entry);
   border-color: rgba(124, 58, 237, 0.5);
@@ -503,6 +512,46 @@ p {
   color: var(--muted);
 }
 
+.simple-table-header,
+.simple-row {
+  display: grid;
+  grid-template-columns: 1fr 0.6fr 0.8fr 1fr 120px;
+  gap: 10px;
+  align-items: center;
+}
+
+.simple-table-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.simple-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.simple-row {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(17, 24, 39, 0.6);
+}
+
+.simple-row input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  padding: 8px 10px;
+  color: var(--text);
+}
+
+.simple-row__annual {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .bucket-targets {
   display: grid;
   gap: 12px;
@@ -677,7 +726,9 @@ p {
 
   .budget-head,
   .budget-row,
-  .budget-foot {
+  .budget-foot,
+  .simple-table-header,
+  .simple-row {
     grid-template-columns: 1fr;
   }
 }
