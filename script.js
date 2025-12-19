@@ -105,6 +105,8 @@ const defaultState = {
   rentPerPay: 0,
   gymPerPay: 0,
   phonePerPay: 0,
+  targetBudgetMonthly: 0,
+  actualSpentMonthly: 0,
   budgetTree: structuredClone(defaultBudgetTree)
 };
 
@@ -304,6 +306,203 @@ const calculateTreeTotals = (tree, netMonthly) =>
     { percent: 0, amount: 0 }
   );
 
+const flattenBudgetItems = (nodes, netMonthly, prefix = "") =>
+  nodes.reduce((list, node) => {
+    const label = prefix ? `${prefix} › ${node.title ?? "Untitled"}` : node.title ?? "Untitled";
+    if (node.type === "item") {
+      const percent = coerceNumber(node.percent);
+      const monthly = netMonthly > 0 ? (netMonthly * percent) / 100 : 0;
+      list.push({ label, percent, monthly, annual: monthly * 12 });
+    }
+    if (node.type === "section") {
+      list.push(...flattenBudgetItems(node.children || [], netMonthly, label));
+    }
+    return list;
+  }, []);
+
+let targetChart;
+let categoryBarChart;
+let categoryPieChart;
+
+const baseChartColors = [
+  "#7c3aed",
+  "#22d3ee",
+  "#f472b6",
+  "#f59e0b",
+  "#34d399",
+  "#60a5fa",
+  "#c084fc",
+  "#f87171",
+  "#a3e635",
+  "#fb7185"
+];
+
+const buildOrUpdateChart = (chartRef, ctx, config) => {
+  if (chartRef) {
+    chartRef.data = config.data;
+    chartRef.options = { ...chartRef.options, ...config.options };
+    chartRef.update();
+    return chartRef;
+  }
+  return new Chart(ctx, config);
+};
+
+const renderTargetProgress = (state, calculations) => {
+  const target = coerceNumber(state.targetBudgetMonthly);
+  const actual = coerceNumber(state.actualSpentMonthly);
+  const variance = actual - target;
+
+  const varianceAmount = document.getElementById("variance-amount");
+  const varianceStatus = document.getElementById("variance-status");
+  if (varianceAmount && varianceStatus) {
+    varianceAmount.textContent = currency(variance);
+    if (variance === 0) {
+      varianceStatus.textContent = "On track";
+    } else if (variance > 0) {
+      varianceStatus.textContent = "Over target";
+    } else {
+      varianceStatus.textContent = "Under target";
+    }
+  }
+
+  const ctx = document.getElementById("target-progress-chart");
+  if (!ctx) return;
+
+  targetChart = buildOrUpdateChart(targetChart, ctx, {
+    type: "bar",
+    data: {
+      labels: ["Target budget", "Actual spend"],
+      datasets: [
+        {
+          label: "Amount",
+          data: [target, actual],
+          backgroundColor: [baseChartColors[0], baseChartColors[4]],
+          borderRadius: 10
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${currency(context.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (value) => currency(value)
+          }
+        }
+      }
+    }
+  });
+};
+
+const renderInsightStats = (calculations, totals) => {
+  const netAnnual = calculations.net.year;
+  const netMonthly = calculations.net.month;
+  const plannedMonthly = totals.amount;
+  const plannedAnnual = plannedMonthly * 12;
+  const unassignedMonthly = netMonthly - plannedMonthly;
+  const unassignedAnnual = unassignedMonthly * 12;
+
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+
+  setText("net-annual-stat", currency(netAnnual));
+  setText("net-monthly-stat", `Monthly: ${currency(netMonthly)}`);
+  setText("planned-annual-stat", currency(plannedAnnual));
+  setText("planned-monthly-stat", `Monthly: ${currency(plannedMonthly)}`);
+  setText("unassigned-annual-stat", currency(unassignedAnnual));
+  setText("unassigned-monthly-stat", `Monthly: ${currency(unassignedMonthly)}`);
+};
+
+const renderCategoryCharts = (state, calculations) => {
+  const netMonthly = calculations.net.month;
+  const items = flattenBudgetItems(state.budgetTree, netMonthly);
+  const labels = items.map((item) => item.label);
+  const amounts = items.map((item) => item.annual);
+  const percents = items.map((item) => item.percent);
+
+  const barCtx = document.getElementById("category-bar-chart");
+  if (barCtx) {
+    categoryBarChart = buildOrUpdateChart(categoryBarChart, barCtx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Annual amount",
+            data: amounts,
+            backgroundColor: labels.map((_, idx) => baseChartColors[idx % baseChartColors.length]),
+            borderRadius: 8
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (context) => `${currency(context.parsed.y)}`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: "#e5e7eb" } },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => currency(value)
+            }
+          }
+        }
+      }
+    });
+  }
+
+  const pieCtx = document.getElementById("category-pie-chart");
+  if (pieCtx) {
+    categoryPieChart = buildOrUpdateChart(categoryPieChart, pieCtx, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [
+          {
+            data: percents,
+            backgroundColor: labels.map((_, idx) => baseChartColors[idx % baseChartColors.length])
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#e5e7eb" } },
+          tooltip: {
+            callbacks: {
+              label: (context) => `${context.label}: ${percentDisplay(context.parsed)}`
+            }
+          }
+        }
+      }
+    });
+  }
+};
+
+const renderCharts = (state, calculations, totals) => {
+  renderTargetProgress(state, calculations);
+  renderInsightStats(calculations, totals);
+  renderCategoryCharts(state, calculations);
+};
+
 const findNodeContext = (nodes, id, parent = null) => {
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index];
@@ -493,6 +692,8 @@ const refreshBudget = (state) => {
   const calculations = calculatePay(state);
   renderSummary(calculations);
   renderBudgetTree(state, calculations.net.month);
+  const totals = calculateTreeTotals(state.budgetTree, calculations.net.month);
+  renderCharts(state, calculations, totals);
 };
 
 const attachModelInputs = (state) => {
@@ -673,6 +874,26 @@ const init = () => {
     rebalanceBudgetTree(state);
     saveState(state);
     refreshBudget(state);
+  });
+
+  const syncTargetButton = document.getElementById("sync-target-net");
+  syncTargetButton.addEventListener("click", () => {
+    const calculations = calculatePay(state);
+    state.targetBudgetMonthly = calculations.net.month;
+    saveState(state);
+    document.querySelector('[data-model="targetBudgetMonthly"]').value = state.targetBudgetMonthly;
+    refreshBudget(state);
+  });
+
+  const tabButtons = document.querySelectorAll(".view-tabs .tab");
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.viewTarget;
+      document.querySelectorAll(".view").forEach((view) => {
+        view.classList.toggle("active", view.id === `${target}-view`);
+      });
+      tabButtons.forEach((btn) => btn.classList.toggle("active", btn === button));
+    });
   });
 };
 
