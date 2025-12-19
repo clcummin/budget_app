@@ -118,7 +118,6 @@ const defaultState = {
   phonePerPay: 0,
   targetBudgetMonthly: 0,
   actualSpentMonthly: 0,
-  budgetTree: structuredClone(defaultBudgetTree)
   budgetTree: structuredClone(defaultBudgetTree),
   collapsedCards: {
     income: false,
@@ -126,6 +125,7 @@ const defaultState = {
     taxes: false,
     posttax: false,
     additional: false,
+    snapshot: false,
     summary: false,
     budget: false
   }
@@ -1118,6 +1118,9 @@ const init = () => {
         view.classList.toggle("active", view.id === `${target}-view`);
       });
       tabButtons.forEach((btn) => btn.classList.toggle("active", btn === button));
+    });
+  });
+
   document.querySelectorAll("[data-collapsible-toggle]").forEach((button) => {
     const key = button.dataset.collapsibleToggle;
     button.addEventListener("click", () => {
