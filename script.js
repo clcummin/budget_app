@@ -108,6 +108,16 @@ const defaultState = {
   targetBudgetMonthly: 0,
   actualSpentMonthly: 0,
   budgetTree: structuredClone(defaultBudgetTree)
+  budgetTree: structuredClone(defaultBudgetTree),
+  collapsedCards: {
+    income: false,
+    pretax: false,
+    taxes: false,
+    posttax: false,
+    additional: false,
+    summary: false,
+    budget: false
+  }
 };
 
 const currency = (value) =>
@@ -174,6 +184,7 @@ const loadState = () => {
 
   const parsed = JSON.parse(stored);
   const merged = { ...defaultState, ...parsed };
+  merged.collapsedCards = { ...defaultState.collapsedCards, ...(parsed.collapsedCards || {}) };
   if (Array.isArray(parsed.budgetTree)) {
     merged.budgetTree = sanitizeTree(parsed.budgetTree);
   } else if (Array.isArray(parsed.budget)) {
@@ -854,11 +865,29 @@ const resetState = (state) => {
   saveState(state);
 };
 
+const applyCardCollapse = (state) => {
+  document.querySelectorAll("[data-collapsible]").forEach((card) => {
+    const key = card.dataset.collapsible;
+    const collapsed = Boolean(state.collapsedCards?.[key]);
+    const toggle = card.querySelector(`[data-collapsible-toggle=\"${key}\"]`);
+    if (collapsed) {
+      card.classList.add("collapsed");
+    } else {
+      card.classList.remove("collapsed");
+    }
+    if (toggle) {
+      toggle.textContent = collapsed ? "Expand" : "Collapse";
+      toggle.setAttribute("aria-expanded", (!collapsed).toString());
+    }
+  });
+};
+
 const init = () => {
   const state = loadState();
   attachModelInputs(state);
   refreshBudget(state);
   bindBudgetListeners(state);
+  applyCardCollapse(state);
 
   const resetButton = document.getElementById("reset-button");
   resetButton.addEventListener("click", () => {
@@ -867,6 +896,7 @@ const init = () => {
       input.value = state[input.dataset.model];
     });
     refreshBudget(state);
+    applyCardCollapse(state);
   });
 
   const rebalanceButton = document.getElementById("rebalance-button");
@@ -893,6 +923,12 @@ const init = () => {
         view.classList.toggle("active", view.id === `${target}-view`);
       });
       tabButtons.forEach((btn) => btn.classList.toggle("active", btn === button));
+  document.querySelectorAll("[data-collapsible-toggle]").forEach((button) => {
+    const key = button.dataset.collapsibleToggle;
+    button.addEventListener("click", () => {
+      state.collapsedCards[key] = !state.collapsedCards[key];
+      saveState(state);
+      applyCardCollapse(state);
     });
   });
 };

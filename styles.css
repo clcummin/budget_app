@@ -149,6 +149,25 @@ p {
   z-index: 1;
 }
 
+.card-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-body {
+  display: block;
+}
+
+.card.collapsed .card-body {
+  display: none;
+}
+
+.card.collapsed .card-header {
+  margin-bottom: 0;
+}
+
 .card-header h2 {
   font-size: 20px;
   margin-bottom: 6px;
