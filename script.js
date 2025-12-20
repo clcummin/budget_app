@@ -213,8 +213,7 @@ const generateId = () => `id-${Math.random().toString(36).slice(2, 8)}-${Date.no
 const createLineItem = (title = "New entry") => ({
   id: generateId(),
   title,
-  perPay: "",
-  note: ""
+  perPay: ""
 });
 
 const sanitizeFilingStatus = (value) => (["single", "married", "hoh"].includes(value) ? value : "single");
@@ -227,8 +226,7 @@ const sanitizeLineItems = (items = []) =>
       return {
         id: item.id ?? generateId(),
         title: item.title ?? item.label ?? "New entry",
-        perPay: perPayRaw === "" ? "" : typeof perPayRaw === "string" ? perPayRaw : coerceNumber(perPayRaw),
-        note: item.note ?? ""
+        perPay: perPayRaw === "" ? "" : typeof perPayRaw === "string" ? perPayRaw : coerceNumber(perPayRaw)
       };
     });
 
@@ -739,7 +737,7 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     titleField.appendChild(title);
 
     const perPayField = document.createElement("label");
-    perPayField.className = "field entry";
+    perPayField.className = "field entry value-field";
     const perPayLabel = document.createElement("span");
     perPayLabel.textContent = "Per paycheck";
     const perPay = document.createElement("input");
@@ -749,20 +747,22 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     perPay.value =
       item.perPay === "" ? "" : typeof item.perPay === "string" ? item.perPay : coerceNumber(item.perPay).toString();
     perPay.dataset.field = "perPay";
+    perPay.classList.add("line-item-input");
+    perPay.addEventListener("blur", () => {
+      perPay.classList.toggle("entered", perPay.value.trim() !== "");
+    });
     perPayField.appendChild(perPayLabel);
     perPayField.appendChild(perPay);
 
-    const noteField = document.createElement("label");
-    noteField.className = "field entry";
-    const noteLabel = document.createElement("span");
-    noteLabel.textContent = "Notes";
-    const note = document.createElement("input");
-    note.type = "text";
-    note.value = item.note ?? "";
-    note.placeholder = "Optional";
-    note.dataset.field = "note";
-    noteField.appendChild(noteLabel);
-    noteField.appendChild(note);
+    const perPayNumeric = coerceNumber(item.perPay);
+    const hasValue = item.perPay !== "" && Number.isFinite(perPayNumeric);
+    if (hasValue) perPay.classList.add("entered");
+    const hint = document.createElement("div");
+    hint.className = "field-hint";
+    hint.textContent = hasValue
+      ? `Monthly ${currency((perPayNumeric * periods) / 12)} • Annual ${currency(perPayNumeric * periods)}`
+      : "Monthly & annual roll up automatically";
+    perPayField.appendChild(hint);
 
     const remove = document.createElement("button");
     remove.type = "button";
@@ -772,7 +772,6 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
 
     row.appendChild(titleField);
     row.appendChild(perPayField);
-    row.appendChild(noteField);
     row.appendChild(remove);
     container.appendChild(row);
   });
@@ -784,7 +783,6 @@ const updateLineItem = (list, id, field, value) => {
   const item = list.find((entry) => entry.id === id);
   if (!item) return false;
   if (field === "title") item.title = value;
-  if (field === "note") item.note = value;
   if (field === "perPay") item.perPay = value;
   return true;
 };
