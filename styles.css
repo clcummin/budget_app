@@ -685,13 +685,17 @@ p {
 
 .line-item-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) 120px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: rgba(17, 24, 39, 0.7);
   align-items: end;
+}
+
+.line-item-row > * {
+  min-width: 0;
 }
 
 .line-item-row .field input {
@@ -701,6 +705,8 @@ p {
 .line-item-row .action-chip.danger {
   justify-self: end;
   height: 38px;
+  min-width: 110px;
+  max-width: 140px;
 }
 
 .bucket-targets {
