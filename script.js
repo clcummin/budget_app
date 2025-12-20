@@ -710,15 +710,25 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
 
   items.forEach((item) => {
     const row = document.createElement("div");
-    row.className = "simple-row";
+    row.className = "line-item-row";
     row.dataset.id = item.id;
 
+    const titleField = document.createElement("label");
+    titleField.className = "field entry";
+    const titleLabel = document.createElement("span");
+    titleLabel.textContent = "Label";
     const title = document.createElement("input");
     title.type = "text";
     title.value = item.title ?? "";
     title.placeholder = "Label";
     title.dataset.field = "title";
+    titleField.appendChild(titleLabel);
+    titleField.appendChild(title);
 
+    const perPayField = document.createElement("label");
+    perPayField.className = "field entry";
+    const perPayLabel = document.createElement("span");
+    perPayLabel.textContent = "Per paycheck";
     const perPay = document.createElement("input");
     perPay.type = "text";
     perPay.inputMode = "decimal";
@@ -726,16 +736,20 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     perPay.value =
       item.perPay === "" ? "" : typeof item.perPay === "string" ? item.perPay : coerceNumber(item.perPay).toString();
     perPay.dataset.field = "perPay";
+    perPayField.appendChild(perPayLabel);
+    perPayField.appendChild(perPay);
 
-    const annual = document.createElement("span");
-    annual.className = "simple-row__annual";
-    annual.textContent = currency(coerceNumber(item.perPay) * periods);
-
+    const noteField = document.createElement("label");
+    noteField.className = "field entry";
+    const noteLabel = document.createElement("span");
+    noteLabel.textContent = "Notes";
     const note = document.createElement("input");
     note.type = "text";
     note.value = item.note ?? "";
-    note.placeholder = "Note";
+    note.placeholder = "Optional";
     note.dataset.field = "note";
+    noteField.appendChild(noteLabel);
+    noteField.appendChild(note);
 
     const remove = document.createElement("button");
     remove.type = "button";
@@ -743,10 +757,9 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     remove.textContent = "Delete";
     remove.dataset.action = "delete";
 
-    row.appendChild(title);
-    row.appendChild(perPay);
-    row.appendChild(annual);
-    row.appendChild(note);
+    row.appendChild(titleField);
+    row.appendChild(perPayField);
+    row.appendChild(noteField);
     row.appendChild(remove);
     container.appendChild(row);
   });
@@ -1071,7 +1084,6 @@ const updatePeekBadges = (state, calculations, totals, targets) => {
   const posttaxPeek = document.getElementById("peek-posttax");
   if (posttaxPeek) {
     posttaxPeek.innerHTML = `
-      <span>Per paycheck: ${currency(calculations.posttax.pay)}</span>
       <span>Annual: ${currency(calculations.posttax.year)}</span>
       <span>${state.afterTaxDeductions.length || 0} deduction${state.afterTaxDeductions.length === 1 ? "" : "s"}</span>
     `;
@@ -1095,7 +1107,7 @@ const updatePeekBadges = (state, calculations, totals, targets) => {
   const additionalPeek = document.getElementById("peek-additional");
   if (additionalPeek) {
     additionalPeek.innerHTML = `
-      <span>Total: ${currency(calculations.additionalIncome.pay)} / pay · ${currency(calculations.additionalIncome.year)} / yr</span>
+      <span>Annual: ${currency(calculations.additionalIncome.year)}</span>
       <span>${state.additionalIncomeItems.length || 0} income item${state.additionalIncomeItems.length === 1 ? "" : "s"}</span>
     `;
   }
@@ -1103,8 +1115,8 @@ const updatePeekBadges = (state, calculations, totals, targets) => {
   const summaryPeek = document.getElementById("peek-summary");
   if (summaryPeek) {
     summaryPeek.innerHTML = `
-      <span>Gross: ${currency(calculations.gross.month)} / mo · ${currency(calculations.gross.year)} / yr</span>
-      <span>Net: ${currency(calculations.net.month)} / mo · ${currency(calculations.net.year)} / yr</span>
+      <span>Net: ${currency(calculations.net.month)} / mo</span>
+      <span>${currency(calculations.net.year)} / yr</span>
     `;
   }
 
@@ -1578,7 +1590,7 @@ const applyCardCollapse = (state) => {
       card.classList.remove("collapsed");
     }
     if (toggle) {
-      toggle.textContent = collapsed ? "Expand" : "Collapse";
+      toggle.textContent = collapsed ? "+" : "−";
       toggle.setAttribute("aria-expanded", (!collapsed).toString());
     }
   });

@@ -39,13 +39,11 @@
       <section class="card" data-collapsible="income">
         <div class="card-tab">Income &amp; baselines</div>
         <div class="card-header">
-          <div class="card-info">
-            <button class="info-icon" aria-label="Income &amp; baselines info" data-tooltip="Enter yearly values—per paycheck numbers are calculated for you."></button>
-          </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="income" aria-expanded="true">Collapse</button>
-          </div>
           <div class="card-peek" id="peek-income"></div>
+          <div class="card-actions">
+            <button class="info-icon" aria-label="Income &amp; baselines info" data-tooltip="Enter yearly values—per paycheck numbers are calculated for you."></button>
+            <button class="collapse-toggle" data-collapsible-toggle="income" aria-expanded="true" aria-label="Collapse Income &amp; baselines">−</button>
+          </div>
         </div>
         <div class="card-body">
           <div class="grid three">
@@ -80,13 +78,11 @@
       <section class="card" data-collapsible="pretax">
         <div class="card-tab">Pre-tax deductions</div>
         <div class="card-header">
-          <div class="card-info">
-            <button class="info-icon" aria-label="Pre-tax deductions info" data-tooltip="Enter yearly totals. Per-pay amounts are calculated and rolled into contributions."></button>
-          </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="pretax" aria-expanded="true">Collapse</button>
-          </div>
           <div class="card-peek" id="peek-pretax"></div>
+          <div class="card-actions">
+            <button class="info-icon" aria-label="Pre-tax deductions info" data-tooltip="Enter yearly totals. Per-pay amounts are calculated and rolled into contributions."></button>
+            <button class="collapse-toggle" data-collapsible-toggle="pretax" aria-expanded="true" aria-label="Collapse Pre-tax deductions">−</button>
+          </div>
         </div>
         <div class="card-body">
           <div class="grid three">
@@ -133,17 +129,15 @@
       <section class="card" data-collapsible="taxes">
         <div class="card-tab">Tax settings</div>
         <div class="card-header">
-          <div class="card-info">
+          <div class="card-peek" id="peek-taxes"></div>
+          <div class="card-actions">
             <button
               class="info-icon"
               aria-label="Tax settings info"
               data-tooltip="Uses 2025 IRS brackets, 2025 California brackets (with the $1M mental health surcharge), and current FICA rates. The expected bracket auto-fills—override if needed."
             ></button>
+            <button class="collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true" aria-label="Collapse Tax settings">−</button>
           </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true">Collapse</button>
-          </div>
-          <div class="card-peek" id="peek-taxes"></div>
         </div>
         <div class="card-body">
           <div class="grid three">
@@ -206,25 +200,18 @@
       <section class="card" data-collapsible="posttax">
         <div class="card-tab">After-tax deductions</div>
         <div class="card-header">
-          <div class="card-info">
-            <button class="info-icon" aria-label="After-tax deductions info" data-tooltip="Items withheld after taxes. Add anything that comes out of each paycheck."></button>
-          </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="posttax" aria-expanded="true">Collapse</button>
-          </div>
           <div class="card-peek" id="peek-posttax"></div>
+          <div class="card-actions">
+            <button class="info-icon" aria-label="After-tax deductions info" data-tooltip="Items withheld after taxes. Add anything that comes out of each paycheck."></button>
+            <button class="collapse-toggle" data-collapsible-toggle="posttax" aria-expanded="true" aria-label="Collapse After-tax deductions">−</button>
+          </div>
         </div>
         <div class="card-body">
-          <div class="simple-table-header">
-            <span>Label</span>
-            <span>Per paycheck</span>
-            <span>Annualized</span>
-            <span>Notes</span>
-            <span></span>
-          </div>
-          <div id="after-tax-list" class="simple-table"></div>
-          <div class="inline-actions">
-            <button id="add-after-tax" class="ghost">+ Add after-tax deduction</button>
+          <div class="line-items">
+            <div id="after-tax-list" class="line-items-list"></div>
+            <div class="inline-actions">
+              <button id="add-after-tax" class="ghost">+ Add after-tax deduction</button>
+            </div>
           </div>
         </div>
       </section>
@@ -232,25 +219,18 @@
       <section class="card" data-collapsible="additional">
         <div class="card-tab">Additional income</div>
         <div class="card-header">
-          <div class="card-info">
-            <button class="info-icon" aria-label="Additional income info" data-tooltip="Credits or reimbursements that get added to your paycheck. Enter per-pay amounts."></button>
-          </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="additional" aria-expanded="true">Collapse</button>
-          </div>
           <div class="card-peek" id="peek-additional"></div>
+          <div class="card-actions">
+            <button class="info-icon" aria-label="Additional income info" data-tooltip="Credits or reimbursements that get added to your paycheck. Enter per-pay amounts."></button>
+            <button class="collapse-toggle" data-collapsible-toggle="additional" aria-expanded="true" aria-label="Collapse Additional income">−</button>
+          </div>
         </div>
         <div class="card-body">
-          <div class="simple-table-header">
-            <span>Label</span>
-            <span>Per paycheck</span>
-            <span>Annualized</span>
-            <span>Notes</span>
-            <span></span>
-          </div>
-          <div id="additional-income-list" class="simple-table"></div>
-          <div class="inline-actions">
-            <button id="add-additional-income" class="ghost">+ Add income item</button>
+          <div class="line-items">
+            <div id="additional-income-list" class="line-items-list"></div>
+            <div class="inline-actions">
+              <button id="add-additional-income" class="ghost">+ Add income item</button>
+            </div>
           </div>
         </div>
       </section>
@@ -258,20 +238,24 @@
       <section class="card span-2" data-collapsible="summary">
         <div class="card-tab">Paycheck summary</div>
         <div class="card-header">
-          <div class="card-info">
-            <button class="info-icon" aria-label="Paycheck summary info" data-tooltip="We calculate per-pay, monthly, and annual totals from your inputs."></button>
-          </div>
-          <div class="card-tools">
+          <div class="card-peek" id="peek-summary"></div>
+          <div class="card-actions">
             <div class="legend">
               <span class="pill">Per pay</span>
               <span class="pill">Monthly</span>
               <span class="pill">Annual</span>
             </div>
-            <button class="ghost collapse-toggle" data-collapsible-toggle="summary" aria-expanded="true">Collapse</button>
+            <button class="info-icon" aria-label="Paycheck summary info" data-tooltip="We calculate per-pay, monthly, and annual totals from your inputs."></button>
+            <button class="collapse-toggle" data-collapsible-toggle="summary" aria-expanded="true" aria-label="Collapse Paycheck summary">+</button>
           </div>
-          <div class="card-peek" id="peek-summary"></div>
         </div>
         <div class="card-body">
+          <div class="summary-columns">
+            <span></span>
+            <span>Per paycheck</span>
+            <span>Monthly</span>
+            <span>Annual</span>
+          </div>
           <div class="summary">
             <div class="summary-row">
               <div class="label">Salary (gross)</div>
@@ -311,17 +295,15 @@
       <section class="card span-2" data-collapsible="bucket-overview">
         <div class="card-tab">Budget bucket targets</div>
         <div class="card-header">
-          <div class="card-info">
+          <div class="card-peek" id="peek-bucket-targets"></div>
+          <div class="card-actions">
             <button
               class="info-icon"
               aria-label="Budget bucket targets info"
               data-tooltip="Set a target percent for each section, compare to the current plan, and spot areas to trim or expand."
             ></button>
+            <button class="collapse-toggle" data-collapsible-toggle="bucket-overview" aria-expanded="true" aria-label="Collapse Budget bucket targets">−</button>
           </div>
-          <div class="card-tools">
-            <button class="ghost collapse-toggle" data-collapsible-toggle="bucket-overview" aria-expanded="true">Collapse</button>
-          </div>
-          <div class="card-peek" id="peek-bucket-targets"></div>
         </div>
         <div class="card-body">
           <div id="bucket-targets" class="bucket-targets"></div>
@@ -331,22 +313,20 @@
       <section class="card span-2" data-collapsible="budget">
         <div class="card-tab">Budget buckets</div>
         <div class="card-header">
-          <div class="card-info">
-            <button
-              class="info-icon"
-              aria-label="Budget buckets info"
-              data-tooltip="Distribute your monthly net pay across the categories you track. Build sections with nested entries, collapse them to see rollups, and drag items around with the move and indent controls."
-            ></button>
-          </div>
-          <div class="card-tools">
+          <div class="card-peek" id="peek-budget"></div>
+          <div class="card-actions">
             <div class="inline-actions">
               <button id="add-entry-button" class="ghost">Add entry</button>
               <button id="add-section-button" class="ghost">Add section</button>
               <button id="rebalance-button" class="ghost">Rebalance to 100%</button>
             </div>
-            <button class="ghost collapse-toggle" data-collapsible-toggle="budget" aria-expanded="true">Collapse</button>
+            <button
+              class="info-icon"
+              aria-label="Budget buckets info"
+              data-tooltip="Distribute your monthly net pay across the categories you track. Build sections with nested entries, collapse them to see rollups, and drag items around with the move and indent controls."
+            ></button>
+            <button class="collapse-toggle" data-collapsible-toggle="budget" aria-expanded="true" aria-label="Collapse Budget buckets">−</button>
           </div>
-          <div class="card-peek" id="peek-budget"></div>
         </div>
         <div class="card-body">
           <div class="budget-table">
