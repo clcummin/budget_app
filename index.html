@@ -11,28 +11,32 @@
 </head>
 <body>
   <header class="page-header">
-    <div>
-      <p class="eyebrow">Salary + Spending</p>
-      <h1>Budget &amp; Paycheck Planner</h1>
-      <p class="lede">
-        Enter your yearly numbers, let the planner auto-calc taxes, deductions, and category budgets.
-        Values save automatically in your browser.
-      </p>
-      <div class="legend legend-inline">
-        <span class="pill entry">You enter this</span>
-        <span class="pill computed">Calculated for you</span>
+    <div class="header-main">
+      <div>
+        <p class="eyebrow">Salary + Spending</p>
+        <h1>Budget &amp; Paycheck Planner</h1>
+        <p class="lede">
+          Enter your yearly numbers, let the planner auto-calc taxes, deductions, and category budgets.
+          Values save automatically in your browser.
+        </p>
+      </div>
+      <div class="header-actions">
+        <div class="legend legend-inline">
+          <span class="pill entry">You enter this</span>
+          <span class="pill computed">Calculated for you</span>
+        </div>
+        <button id="reset-button" class="ghost">Reset to defaults</button>
       </div>
     </div>
-    <div class="header-actions">
-      <button id="reset-button" class="ghost">Reset to defaults</button>
+
+    <div class="header-toolbar">
+      <nav class="view-tabs">
+        <button class="tab active" data-view-target="income">Income</button>
+        <button class="tab" data-view-target="budget">Budget</button>
+        <button class="tab" data-view-target="insights">Insights</button>
+      </nav>
     </div>
   </header>
-
-  <nav class="view-tabs">
-    <button class="tab active" data-view-target="income">Income</button>
-    <button class="tab" data-view-target="budget">Budget</button>
-    <button class="tab" data-view-target="insights">Insights</button>
-  </nav>
 
   <main class="page-views">
     <section id="income-view" class="layout view active">
