@@ -61,22 +61,16 @@ const defaultBudgetTree = [
     id: "section-housing",
     type: "section",
     title: "Housing",
-    note: "Mortgage/rent, HOA, utilities, taxes",
+    note: "Rent/mortgage, utilities, insurance",
     collapsed: false,
-    targetPercent: 40,
+    targetPercent: 20,
     children: [
-      { id: "item-primary", type: "item", title: "Home - primary", percent: 28.1, note: "Mortgage/rent, HOA, water, taxes" },
       {
-        id: "section-california",
-        type: "section",
-        title: "California housing",
-        note: "Rent + utilities",
-        collapsed: false,
-        targetPercent: 12,
-        children: [
-          { id: "item-rent", type: "item", title: "Rent", percent: 18, note: "Apartment rent" },
-          { id: "item-utilities", type: "item", title: "Utilities", percent: 11.4, note: "Power, water, trash, internet" }
-        ]
+        id: "item-housing",
+        type: "item",
+        title: "Housing",
+        percent: 20,
+        note: "Rent/mortgage, utilities, insurance"
       }
     ]
   },
@@ -86,31 +80,60 @@ const defaultBudgetTree = [
     title: "Transportation",
     note: "Gas, car payment, insurance, parking",
     collapsed: false,
-    targetPercent: 15,
+    targetPercent: 20,
     children: [
-      { id: "item-transport", type: "item", title: "Transportation", percent: 13.5, note: "Gas, car payment, insurance, parking" }
+      {
+        id: "item-transport",
+        type: "item",
+        title: "Transportation",
+        percent: 20,
+        note: "Gas, car payment, insurance, parking"
+      }
+    ]
+  },
+  {
+    id: "section-savings",
+    type: "section",
+    title: "Savings",
+    note: "Emergency fund, investments, long-term goals",
+    collapsed: false,
+    targetPercent: 30,
+    children: [
+      {
+        id: "item-savings",
+        type: "item",
+        title: "Savings",
+        percent: 30,
+        note: "Emergency fund, investments, long-term goals"
+      }
+    ]
+  },
+  {
+    id: "section-monthly-disposable",
+    type: "section",
+    title: "Monthly disposable",
+    note: "Day-to-day spending, food, entertainment",
+    collapsed: false,
+    targetPercent: 20,
+    children: [
+      {
+        id: "item-monthly-disposable",
+        type: "item",
+        title: "Monthly disposable",
+        percent: 20,
+        note: "Day-to-day spending, food, entertainment"
+      }
     ]
   },
   {
     id: "section-debt",
     type: "section",
     title: "Debt",
-    note: "Cards and student loans",
+    note: "Loan and credit payments",
     collapsed: false,
-    targetPercent: 10,
+    targetPercent: 0,
     children: [
-      { id: "item-debt", type: "item", title: "Debt", percent: 3.6, note: "Cards and student loans" }
-    ]
-  },
-  {
-    id: "section-expenses",
-    type: "section",
-    title: "Additional expenses",
-    note: "Subscriptions, memberships, misc",
-    collapsed: false,
-    targetPercent: 10,
-    children: [
-      { id: "item-additional", type: "item", title: "Additional expenses", percent: 7, note: "Subscriptions, memberships, misc" }
+      { id: "item-debt", type: "item", title: "Debt", percent: 0, note: "Loan and credit payments" }
     ]
   },
   {
@@ -119,20 +142,9 @@ const defaultBudgetTree = [
     title: "Charitable donations",
     note: "Monthly giving",
     collapsed: false,
-    targetPercent: 5,
+    targetPercent: 10,
     children: [
-      { id: "item-charity", type: "item", title: "Charitable donations", percent: 1, note: "Monthly giving" }
-    ]
-  },
-  {
-    id: "section-savings",
-    type: "section",
-    title: "Savings",
-    note: "Reserve, vacations, long-term",
-    collapsed: false,
-    targetPercent: 20,
-    children: [
-      { id: "item-savings", type: "item", title: "Savings", percent: 17.4, note: "Reserve, vacations, long-term" }
+      { id: "item-charity", type: "item", title: "Charitable donations", percent: 10, note: "Monthly giving" }
     ]
   }
 ];
