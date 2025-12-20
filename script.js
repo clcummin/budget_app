@@ -784,7 +784,7 @@ const bindLineItemList = (state, config) => {
     container.addEventListener("input", (event) => {
       const field = event.target.dataset.field;
       if (!field) return;
-      const row = event.target.closest(".simple-row");
+      const row = event.target.closest(".line-item-row");
       if (!row) return;
       const updated = updateLineItem(state[listKey], row.dataset.id, field, event.target.value);
       if (updated) {
@@ -796,7 +796,7 @@ const bindLineItemList = (state, config) => {
     container.addEventListener("click", (event) => {
       const action = event.target.dataset.action;
       if (action !== "delete") return;
-      const row = event.target.closest(".simple-row");
+      const row = event.target.closest(".line-item-row");
       if (!row) return;
       const index = state[listKey].findIndex((item) => item.id === row.dataset.id);
       if (index >= 0) {
