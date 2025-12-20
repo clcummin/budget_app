@@ -515,6 +515,7 @@ const calculatePay = (state) => {
   const stateExtraAnnual = annualTaxable * (coerceNumber(state.stateRate) / 100);
   const stateTaxBase = stateTaxAnnuals.base / periods;
   const stateMentalHealth = stateTaxAnnuals.surcharge / periods;
+  const stateExtra = stateExtraAnnual / periods;
   const stateTax = (stateTaxAnnuals.total + stateExtraAnnual) / periods;
 
   const socialSecurityTax =
@@ -575,7 +576,7 @@ const calculatePay = (state) => {
         federalW4: bundle(federalExtraWithholding),
         stateBase: bundle(stateTaxBase),
         stateMentalHealth: bundle(stateMentalHealth),
-        state: bundle(stateTax),
+        stateExtra: bundle(stateExtra),
         socialSecurity: bundle(socialSecurityTax),
         medicare: bundle(medicareTax),
         medicareSurtax: bundle(medicareSurtax),
@@ -618,7 +619,7 @@ const renderSummary = (calculated) => {
       ["federalW4", "Federal W-4 extra"],
       ["stateBase", "CA base tax"],
       ["stateMentalHealth", "CA mental health surcharge"],
-      ["state", "State"],
+      ["stateExtra", "CA extra withholding"],
       ["socialSecurity", "Social Security"],
       ["medicare", "Medicare"],
       ["medicareSurtax", "Medicare surtax"],
