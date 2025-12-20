@@ -31,6 +31,7 @@ body {
     var(--bg);
   color: var(--text);
   min-height: 100vh;
+  line-height: 1.6;
 }
 
 h1,
@@ -57,6 +58,7 @@ p {
   justify-content: space-between;
   gap: 24px;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .page-header h1 {
@@ -84,6 +86,7 @@ p {
   gap: 12px;
   align-items: flex-end;
   flex-direction: column;
+  min-width: 240px;
 }
 
 .header-toolbar {
@@ -102,6 +105,9 @@ p {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   align-self: flex-start;
   margin-left: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab {
@@ -114,6 +120,7 @@ p {
   font-weight: 700;
   letter-spacing: 0.01em;
   transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
 }
 
 .tab:hover {
@@ -132,8 +139,9 @@ p {
 .layout {
   padding: 0 32px 64px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 18px;
+  width: 100%;
 }
 
 .page-views {
@@ -189,6 +197,7 @@ p {
 
 .card-body {
   display: block;
+  overflow: hidden;
 }
 
 .card.collapsed .card-body {
@@ -563,6 +572,7 @@ p {
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
+  min-height: 1px;
 }
 
 .budget-tree {
@@ -847,6 +857,7 @@ p {
 @media (max-width: 840px) {
   .page-header {
     flex-direction: column;
+    padding: 26px 20px 12px;
   }
 
   .header-main {
@@ -856,10 +867,12 @@ p {
 
   .header-actions {
     align-items: flex-start;
+    width: 100%;
   }
 
   .header-toolbar {
     justify-content: flex-start;
+    width: 100%;
   }
 
   .summary-row {
@@ -875,6 +888,44 @@ p {
   .budget-foot,
   .simple-table-header,
   .simple-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .page-header {
+    gap: 12px;
+  }
+
+  .header-main {
+    gap: 16px;
+  }
+
+  .layout {
+    padding: 0 16px 48px;
+  }
+
+  .card {
+    padding: 20px 14px 18px;
+  }
+
+  .card-tab {
+    top: -12px;
+    left: 12px;
+  }
+
+  .view-tabs {
+    width: 100%;
+  }
+
+  .header-actions {
+    min-width: 0;
+  }
+
+  .line-item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .bucket-targets {
     grid-template-columns: 1fr;
   }
 }
