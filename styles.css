@@ -144,6 +144,14 @@ p {
   width: 100%;
 }
 
+.layout#budget-view {
+  grid-template-columns: 1fr;
+}
+
+.layout#budget-view .span-2 {
+  grid-column: span 1;
+}
+
 .page-views {
   display: flex;
   flex-direction: column;
