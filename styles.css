@@ -152,6 +152,10 @@ p {
   grid-column: span 1;
 }
 
+.span-3 {
+  grid-column: span 3;
+}
+
 .page-views {
   display: flex;
   flex-direction: column;
@@ -685,8 +689,8 @@ p {
 
 .line-item-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1fr) auto;
+  gap: 12px;
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -700,6 +704,21 @@ p {
 
 .line-item-row .field input {
   width: 100%;
+}
+
+.value-field {
+  position: relative;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: -2px;
+}
+
+.line-item-input.entered:not(:focus) {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: var(--border);
 }
 
 .line-item-row .action-chip.danger {
@@ -1027,7 +1046,7 @@ p {
   transition: opacity 0.15s ease, transform 0.15s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   font-size: 14px;
-  z-index: 15;
+  z-index: 40;
 }
 
 .info-icon:hover::after,
