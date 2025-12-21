@@ -33,6 +33,7 @@
         <button class="tab active" data-view-target="income">Income</button>
         <button class="tab" data-view-target="budget">Budget</button>
         <button class="tab" data-view-target="insights">Insights</button>
+        <button class="tab" data-view-target="taxes">Taxes</button>
       </nav>
     </div>
   </header>
@@ -62,35 +63,39 @@
         <div class="card-header">
           <div class="card-peek" id="peek-income"></div>
           <div class="card-actions">
-            <button class="info-icon" aria-label="Income &amp; baselines info" data-tooltip="Enter yearly values—per paycheck numbers are calculated for you."></button>
+            <button class="info-icon" aria-label="Income &amp; baselines info" data-tooltip="Enter per-paycheck values. Annual totals are calculated for you."></button>
             <button class="collapse-toggle" data-collapsible-toggle="income" aria-expanded="true" aria-label="Collapse Income &amp; baselines">−</button>
           </div>
         </div>
         <div class="card-body">
           <div class="grid three">
             <label class="field entry">
-              <span>Salary (gross, annual)</span>
-              <input type="number" data-model="salaryAnnual" inputmode="decimal" step="0.01" />
+              <span>Salary (gross, per paycheck)</span>
+              <input type="number" data-model="salaryPerPay" inputmode="decimal" step="0.01" />
             </label>
             <label class="field entry">
               <span>Pay periods per year</span>
               <input type="number" data-model="periodsPerYear" min="1" max="52" />
             </label>
             <label class="field computed">
-              <span>Salary (gross, per paycheck)</span>
-              <input type="number" data-model="salaryPerPay" inputmode="decimal" step="0.01" readonly />
+              <span>Salary (gross, annual)</span>
+              <input type="number" data-model="salaryAnnual" inputmode="decimal" step="0.01" readonly />
             </label>
             <label class="field entry">
-              <span>Standard deduction (annual)</span>
-              <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" step="0.01" />
-            </label>
-            <label class="field entry">
-              <span>Extra withholding (annual, W4)</span>
-              <input type="number" data-model="w4ExtraAnnual" inputmode="decimal" step="0.01" />
+              <span>Standard deduction (per paycheck)</span>
+              <input type="number" data-model="standardDeductionPerPay" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
-              <span>Extra withholding (per paycheck)</span>
-              <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" step="0.01" readonly />
+              <span>Standard deduction (annual)</span>
+              <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" step="0.01" readonly />
+            </label>
+            <label class="field entry">
+              <span>Extra withholding (per paycheck, W4)</span>
+              <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" step="0.01" />
+            </label>
+            <label class="field computed">
+              <span>Extra withholding (annual)</span>
+              <input type="number" data-model="w4ExtraAnnual" inputmode="decimal" step="0.01" readonly />
             </label>
           </div>
         </div>
@@ -101,7 +106,7 @@
         <div class="card-header">
           <div class="card-peek" id="peek-pretax"></div>
           <div class="card-actions">
-            <button class="info-icon" aria-label="Pre-tax deductions info" data-tooltip="Enter yearly totals. Per-pay amounts are calculated and rolled into contributions."></button>
+            <button class="info-icon" aria-label="Pre-tax deductions info" data-tooltip="Enter per-paycheck values except HSA (annual). Annual totals are calculated for you."></button>
             <button class="collapse-toggle" data-collapsible-toggle="pretax" aria-expanded="true" aria-label="Collapse Pre-tax deductions">−</button>
           </div>
         </div>
@@ -120,28 +125,28 @@
               <input type="number" data-model="hsaPerPay" inputmode="decimal" step="0.01" readonly />
             </label>
             <label class="field entry">
-              <span>Dental (annual)</span>
-              <input type="number" data-model="dentalAnnual" inputmode="decimal" step="0.01" />
-            </label>
-            <label class="field computed">
               <span>Dental (per pay)</span>
-              <input type="number" data-model="dentalPerPay" inputmode="decimal" step="0.01" readonly />
-            </label>
-            <label class="field entry">
-              <span>Medical (annual)</span>
-              <input type="number" data-model="medicalAnnual" inputmode="decimal" step="0.01" />
+              <input type="number" data-model="dentalPerPay" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
+              <span>Dental (annual)</span>
+              <input type="number" data-model="dentalAnnual" inputmode="decimal" step="0.01" readonly />
+            </label>
+            <label class="field entry">
               <span>Medical (per pay)</span>
-              <input type="number" data-model="medicalPerPay" inputmode="decimal" step="0.01" readonly />
-            </label>
-            <label class="field entry">
-              <span>Other pre-tax (annual)</span>
-              <input type="number" data-model="otherPretaxAnnual" inputmode="decimal" step="0.01" />
+              <input type="number" data-model="medicalPerPay" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
+              <span>Medical (annual)</span>
+              <input type="number" data-model="medicalAnnual" inputmode="decimal" step="0.01" readonly />
+            </label>
+            <label class="field entry">
               <span>Other pre-tax (per pay)</span>
-              <input type="number" data-model="otherPretaxPerPay" inputmode="decimal" step="0.01" readonly />
+              <input type="number" data-model="otherPretaxPerPay" inputmode="decimal" step="0.01" />
+            </label>
+            <label class="field computed">
+              <span>Other pre-tax (annual)</span>
+              <input type="number" data-model="otherPretaxAnnual" inputmode="decimal" step="0.01" readonly />
             </label>
           </div>
         </div>
@@ -155,13 +160,14 @@
             <button
               class="info-icon"
               aria-label="Tax settings info"
-              data-tooltip="Uses 2025 IRS brackets, 2025 California brackets (with the $1M mental health surcharge), and current FICA rates. The expected bracket auto-fills—override if needed."
+              data-tooltip="Uses 2025 IRS brackets, 2025 California brackets (with the $1M mental health surcharge), and current FICA rates. Review the summary here—open the breakdown to see how withholding is calculated."
             ></button>
+            <button class="ghost compact" id="open-tax-breakdown">View breakdown</button>
             <button class="collapse-toggle" data-collapsible-toggle="taxes" aria-expanded="true" aria-label="Collapse Tax settings">−</button>
           </div>
         </div>
         <div class="card-body">
-          <div class="grid three">
+          <div class="grid two tax-summary-grid">
             <label class="field entry">
               <span>CA filing status</span>
               <select data-model="stateFilingStatus">
@@ -178,47 +184,57 @@
               <span>Expected CA bracket</span>
               <div class="calculated-readout" data-output="stateBracket"></div>
             </label>
-            <label class="field entry">
-              <span>Override federal bracket (%)</span>
-              <input type="number" data-model="federalBracketOverride" step="0.1" />
-            </label>
-            <label class="field entry">
-              <span>Override CA bracket (%)</span>
-              <input type="number" data-model="stateBracketOverride" step="0.1" />
-            </label>
-            <label class="field entry">
-              <span>Extra federal withholding (%)</span>
-              <input type="number" data-model="federalRate" step="0.1" />
-            </label>
-            <label class="field entry">
-              <span>Extra CA withholding (%)</span>
-              <input type="number" data-model="stateRate" step="0.1" />
-            </label>
-            <label class="field entry">
-              <span>Medicare (%)</span>
-              <input type="number" data-model="medicareRate" step="0.01" />
-            </label>
-            <label class="field entry">
-              <span>Medicare surtax (%)</span>
-              <input type="number" data-model="medicareSurtaxRate" step="0.01" />
-            </label>
-            <label class="field entry">
-              <span>Medicare surtax threshold (annual)</span>
-              <input type="number" data-model="medicareSurtaxThreshold" inputmode="decimal" step="0.01" />
-            </label>
-            <label class="field entry">
-              <span>Social Security (%)</span>
-              <input type="number" data-model="socialSecurityRate" step="0.01" />
-            </label>
-            <label class="field entry">
-              <span>State Disability / VDI (%)</span>
-              <input type="number" data-model="sdiRate" step="0.01" />
-            </label>
-            <label class="field entry">
-              <span>State Disability / VDI wage limit (annual)</span>
-              <input type="number" data-model="sdiWageBase" inputmode="decimal" step="0.01" />
+            <label class="field computed">
+              <span>Taxes withheld (per pay / annual)</span>
+              <div class="calculated-readout" data-output="taxWithheldSummary"></div>
             </label>
           </div>
+
+          <details class="tax-advanced" id="tax-advanced">
+            <summary class="inline-link">Show tax overrides &amp; fine-tuning</summary>
+            <div class="grid three">
+              <label class="field entry">
+                <span>Override federal bracket (%)</span>
+                <input type="number" data-model="federalBracketOverride" step="0.1" />
+              </label>
+              <label class="field entry">
+                <span>Override CA bracket (%)</span>
+                <input type="number" data-model="stateBracketOverride" step="0.1" />
+              </label>
+              <label class="field entry">
+                <span>Extra federal withholding (%)</span>
+                <input type="number" data-model="federalRate" step="0.1" />
+              </label>
+              <label class="field entry">
+                <span>Extra CA withholding (%)</span>
+                <input type="number" data-model="stateRate" step="0.1" />
+              </label>
+              <label class="field entry">
+                <span>Medicare (%)</span>
+                <input type="number" data-model="medicareRate" step="0.01" />
+              </label>
+              <label class="field entry">
+                <span>Medicare surtax (%)</span>
+                <input type="number" data-model="medicareSurtaxRate" step="0.01" />
+              </label>
+              <label class="field entry">
+                <span>Medicare surtax threshold (annual)</span>
+                <input type="number" data-model="medicareSurtaxThreshold" inputmode="decimal" step="0.01" />
+              </label>
+              <label class="field entry">
+                <span>Social Security (%)</span>
+                <input type="number" data-model="socialSecurityRate" step="0.01" />
+              </label>
+              <label class="field entry">
+                <span>State Disability / VDI (%)</span>
+                <input type="number" data-model="sdiRate" step="0.01" />
+              </label>
+              <label class="field entry">
+                <span>State Disability / VDI wage limit (annual)</span>
+                <input type="number" data-model="sdiWageBase" inputmode="decimal" step="0.01" />
+              </label>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -292,7 +308,9 @@
             <div class="summary-row">
               <div class="label">Taxes withheld</div>
               <div class="values" data-output="taxes"></div>
-              <div class="summary-breakdown" data-output="taxesBreakdown"></div>
+              <div class="summary-actions">
+                <button class="inline-link" id="summary-tax-breakdown">View breakdown</button>
+              </div>
             </div>
             <div class="summary-row">
               <div class="label">After-tax deductions</div>
@@ -418,6 +436,41 @@
         </div>
         <div class="chart-wrapper">
           <canvas id="category-pie-chart" height="320"></canvas>
+        </div>
+      </section>
+    </section>
+
+    <section id="taxes-view" class="layout view">
+      <section class="card span-2">
+        <div class="card-tab">Withholding breakdown</div>
+        <div class="card-header">
+          <div class="card-info">
+            <p class="muted">See how each component of your per-paycheck taxes is calculated.</p>
+          </div>
+          <div class="card-actions">
+            <button class="ghost compact" id="back-to-income">Back to income</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="summary-columns">
+            <span>Category</span>
+            <span>Per paycheck</span>
+            <span>Monthly</span>
+            <span>Annual</span>
+          </div>
+          <div class="summary" id="tax-breakdown-list"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-tab">How we calculate taxes</div>
+        <div class="card-header">
+          <div class="card-info">
+            <p class="muted">Review bracket ranges, surcharges, and assumptions applied to your pay.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="tax-facts" id="tax-facts"></ul>
         </div>
       </section>
     </section>

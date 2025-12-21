@@ -160,6 +160,7 @@ const defaultState = {
   salaryPerPay: 0,
   periodsPerYear: 26,
   standardDeductionAnnual: 15750,
+  standardDeductionPerPay: 0,
   w4ExtraAnnual: 0,
   w4ExtraPerPay: 0,
   k401Percent: 0,
@@ -517,6 +518,7 @@ const recalcDerivedFields = (state) => {
   const pairs = [
     ["salaryAnnual", "salaryPerPay"],
     ["w4ExtraAnnual", "w4ExtraPerPay"],
+    ["standardDeductionAnnual", "standardDeductionPerPay"],
     ["hsaAnnual", "hsaPerPay"],
     ["dentalAnnual", "dentalPerPay"],
     ["medicalAnnual", "medicalPerPay"],
@@ -747,6 +749,77 @@ const renderSummaryBreakdown = (target, breakdown, entries = []) => {
   });
 };
 
+const renderTaxBreakdownView = (calculated) => {
+  const list = document.getElementById("tax-breakdown-list");
+  if (!list) return;
+
+  const entries = [
+    ["federalBracket", "Federal (marginal)"],
+    ["federalExtraPercent", "Federal extra %"],
+    ["federalW4", "Federal W-4 extra"],
+    ["stateBase", "CA base tax"],
+    ["stateMentalHealth", "CA mental health surcharge"],
+    ["stateExtra", "CA extra withholding"],
+    ["socialSecurity", "Social Security"],
+    ["medicare", "Medicare"],
+    ["medicareSurtax", "Medicare surtax"],
+    ["sdi", "State disability / VDI"]
+  ];
+
+  list.innerHTML = "";
+  const addRow = (label, bundle, isTotal = false) => {
+    const row = document.createElement("div");
+    row.className = `summary-row ${isTotal ? "total" : ""}`;
+    const labelEl = document.createElement("div");
+    labelEl.className = "label";
+    labelEl.textContent = label;
+    const valuesEl = document.createElement("div");
+    valuesEl.className = "values";
+    valuesEl.innerHTML = createValueGroup(bundle);
+    row.appendChild(labelEl);
+    row.appendChild(valuesEl);
+    list.appendChild(row);
+  };
+
+  const breakdown = calculated.details.taxBreakdown;
+  entries.forEach(([key, label]) => {
+    const bundle = breakdown?.[key];
+    if (bundle) addRow(label, bundle);
+  });
+
+  addRow("Total withheld", calculated.taxes, true);
+};
+
+const renderTaxFacts = (calculated) => {
+  const facts = document.getElementById("tax-facts");
+  if (!facts) return;
+
+  const {
+    details: { expectedFederalBracket, expectedStateBracket, stateFilingStatus, usedFederalRate, usedStateRate, standardDeductionAnnual }
+  } = calculated;
+
+  const items = [
+    `Federal bracket: ${usedFederalRate.toFixed(1)}% on ${rangeLabel(
+      expectedFederalBracket.lower,
+      expectedFederalBracket.upper
+    )}`,
+    `CA bracket (${CA_FILING_LABELS[sanitizeFilingStatus(stateFilingStatus)]}): ${usedStateRate.toFixed(
+      1
+    )}% on ${rangeLabel(expectedStateBracket.lower, expectedStateBracket.upper)}`,
+    `Standard deduction applied: ${currency(standardDeductionAnnual)} annually`,
+    `Mental health surcharge kicks in above ${currency(MENTAL_HEALTH_SURCHARGE_THRESHOLD)} with a ${(
+      MENTAL_HEALTH_SURCHARGE_RATE * 100
+    ).toFixed(1)}% rate`
+  ];
+
+  facts.innerHTML = "";
+  items.forEach((text) => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    facts.appendChild(li);
+  });
+};
+
 const renderTaxFields = (calculated) => {
   const { details } = calculated;
   const {
@@ -769,6 +842,11 @@ const renderTaxFields = (calculated) => {
   if (bracketField) bracketField.textContent = bracketLabel;
   const stateBracketField = document.querySelector('[data-output="stateBracket"]');
   if (stateBracketField) stateBracketField.textContent = stateBracketLabel;
+
+  const taxWithheldField = document.querySelector('[data-output="taxWithheldSummary"]');
+  if (taxWithheldField) {
+    taxWithheldField.textContent = `${currency(calculated.taxes.pay)} / pay · ${currency(calculated.taxes.year)} / yr`;
+  }
 };
 
 const captureActiveField = (container) => {
@@ -1538,6 +1616,8 @@ const refreshBudget = (state) => {
   renderLineItemList(state.additionalIncomeItems, "additional-income-list", periods, "Add income credits or stipends.");
   renderSummary(calculations);
   renderTaxFields(calculations);
+  renderTaxBreakdownView(calculations);
+  renderTaxFacts(calculations);
   renderBudgetTree(state, netMonthly, {
     treeId: "budget-tree",
     percentTotalId: "budget-percent-total",
@@ -1750,6 +1830,16 @@ const applyCardCollapse = (state) => {
   });
 };
 
+const setActiveView = (target) => {
+  const viewId = `${target}-view`;
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.toggle("active", view.id === viewId);
+  });
+  document.querySelectorAll(".view-tabs .tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.viewTarget === target);
+  });
+};
+
 const init = () => {
   const state = loadState();
   recalcDerivedFields(state);
@@ -1797,12 +1887,18 @@ const init = () => {
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const target = button.dataset.viewTarget;
-      document.querySelectorAll(".view").forEach((view) => {
-        view.classList.toggle("active", view.id === `${target}-view`);
-      });
-      tabButtons.forEach((btn) => btn.classList.toggle("active", btn === button));
+      setActiveView(target);
     });
   });
+
+  const taxButtons = [
+    document.getElementById("open-tax-breakdown"),
+    document.getElementById("summary-tax-breakdown")
+  ].filter(Boolean);
+  taxButtons.forEach((btn) => btn.addEventListener("click", () => setActiveView("taxes")));
+
+  const backToIncome = document.getElementById("back-to-income");
+  if (backToIncome) backToIncome.addEventListener("click", () => setActiveView("income"));
 
   document.querySelectorAll("[data-collapsible-toggle]").forEach((button) => {
     const key = button.dataset.collapsibleToggle;
