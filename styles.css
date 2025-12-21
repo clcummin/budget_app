@@ -714,6 +714,36 @@ p {
   justify-content: flex-end;
 }
 
+.line-item-title {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(17, 24, 39, 0.65);
+  color: var(--text);
+  font-weight: 700;
+  min-height: 44px;
+  line-height: 1.35;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  cursor: text;
+}
+
+.line-item-title:hover {
+  border-color: var(--accent);
+}
+
+.line-item-title:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.18);
+  background: rgba(17, 24, 39, 0.78);
+}
+
+.line-item-title:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .line-item-row .field input {
   width: 100%;
 }

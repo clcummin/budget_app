@@ -741,17 +741,21 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     const fields = document.createElement("div");
     fields.className = "line-item-fields";
 
-    const titleField = document.createElement("label");
-    titleField.className = "field entry";
-    const titleLabel = document.createElement("span");
-    titleLabel.textContent = "Label";
-    const title = document.createElement("input");
-    title.type = "text";
-    title.value = item.title ?? "";
-    title.placeholder = "Label";
+    const title = document.createElement("div");
+    title.className = "line-item-title";
+    title.contentEditable = "true";
     title.dataset.field = "title";
-    titleField.appendChild(titleLabel);
-    titleField.appendChild(title);
+    title.dataset.placeholder = "Label";
+    title.setAttribute("role", "textbox");
+    title.setAttribute("aria-label", "Label");
+    title.spellcheck = false;
+    title.textContent = item.title ?? "";
+    title.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        title.blur();
+      }
+    });
 
     const perPayField = document.createElement("label");
     perPayField.className = "field entry value-field";
@@ -774,7 +778,7 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     const perPayNumeric = coerceNumber(item.perPay);
     const hasValue = item.perPay !== "" && Number.isFinite(perPayNumeric);
     if (hasValue) perPay.classList.add("entered");
-    fields.appendChild(titleField);
+    fields.appendChild(title);
     fields.appendChild(perPayField);
 
     const actions = document.createElement("div");
@@ -808,17 +812,26 @@ const bindLineItemList = (state, config) => {
   const container = document.getElementById(containerId);
   const addButton = document.getElementById(addButtonId);
   if (container) {
-    container.addEventListener("input", (event) => {
+    const handleFieldUpdate = (event) => {
       const field = event.target.dataset.field;
       if (!field) return;
       const row = event.target.closest(".line-item-row");
       if (!row) return;
-      const updated = updateLineItem(state[listKey], row.dataset.id, field, event.target.value);
+      let value =
+        field === "title" ? (event.target.textContent ?? "") : event.target.value;
+      if (field === "title" && event.type === "blur") {
+        value = value.trim();
+        event.target.textContent = value;
+      }
+      const updated = updateLineItem(state[listKey], row.dataset.id, field, value);
       if (updated) {
         saveState(state);
         refreshBudget(state);
       }
-    });
+    };
+
+    container.addEventListener("input", handleFieldUpdate);
+    container.addEventListener("blur", handleFieldUpdate, true);
 
     container.addEventListener("click", (event) => {
       const action = event.target.dataset.action;
