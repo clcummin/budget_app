@@ -264,6 +264,30 @@ const percentDisplay = (value) => {
 
 const isBlank = (value) => value === "" || value === null || value === undefined;
 
+const sanitizeNumericString = (value) => {
+  if (value === undefined || value === null) return "";
+  let stringValue = String(value);
+  stringValue = stringValue.replace(/[^0-9.\-]/g, "");
+  const isNegative = stringValue.startsWith("-");
+  stringValue = stringValue.replace(/-/g, "");
+  const endsWithDot = stringValue.endsWith(".");
+  const [integerPart, ...decimalParts] = stringValue.split(".");
+  const decimal = decimalParts.join("");
+  let cleaned = integerPart;
+  if (decimal) cleaned += `.${decimal}`;
+  if (endsWithDot && decimal === "" && cleaned) cleaned += ".";
+  if (isNegative && cleaned) cleaned = `-${cleaned}`;
+  return cleaned;
+};
+
+const sanitizeTextValue = (value) => {
+  if (value === undefined || value === null) return "";
+  return String(value)
+    .replace(/[^a-z0-9 \-'.&,!?]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 const coerceNumber = (value) => {
   const parsed = typeof value === "string" ? parseFloat(value) : value;
   return Number.isFinite(parsed) ? parsed : 0;
@@ -284,10 +308,12 @@ const sanitizeLineItems = (items = []) =>
     .filter(Boolean)
     .map((item) => {
       const perPayRaw = item.perPay ?? item.perPayAmount ?? "";
+      const title = sanitizeTextValue(item.title ?? item.label ?? "New entry");
+      const perPayCleaned = sanitizeNumericString(perPayRaw);
       return {
         id: item.id ?? generateId(),
-        title: item.title ?? item.label ?? "New entry",
-        perPay: perPayRaw === "" ? "" : typeof perPayRaw === "string" ? perPayRaw : coerceNumber(perPayRaw)
+        title,
+        perPay: perPayCleaned === "" ? "" : typeof perPayRaw === "string" ? perPayCleaned : coerceNumber(perPayRaw)
       };
     });
 
@@ -295,12 +321,14 @@ const sanitizeTree = (nodes = []) =>
   nodes
     .filter(Boolean)
     .map((node) => {
+      const title = sanitizeTextValue(node.title ?? node.label ?? "New section");
+      const note = sanitizeTextValue(node.note ?? "");
       if (node.type === "section") {
         return {
           id: node.id ?? generateId(),
           type: "section",
-          title: node.title ?? node.label ?? "New section",
-          note: node.note ?? "",
+          title,
+          note,
           collapsed: Boolean(node.collapsed),
           targetPercent: coerceNumber(node.targetPercent),
           children: sanitizeTree(node.children || [])
@@ -309,9 +337,9 @@ const sanitizeTree = (nodes = []) =>
       return {
         id: node.id ?? generateId(),
         type: "item",
-        title: node.title ?? node.label ?? "New entry",
+        title: sanitizeTextValue(node.title ?? node.label ?? "New entry"),
         percent: coerceNumber(node.percent),
-        note: node.note ?? ""
+        note
       };
     });
 
@@ -637,7 +665,7 @@ const annualFromState = (state, annualKey, perPayKey, periods) => {
   return coerceNumber(state[perPayKey]) * periods;
 };
 
-const recalcDerivedFields = (state) => {
+const recalcDerivedFields = (state, activeKey = null) => {
   const periods = Math.max(1, coerceNumber(state.periodsPerYear));
   const pairs = [
     ["salaryAnnual", "salaryPerPay"],
@@ -656,10 +684,22 @@ const recalcDerivedFields = (state) => {
     const perPayValue = coerceNumber(perPayRaw);
     const hasAnnual = !isBlank(annualRaw);
     const hasPerPay = !isBlank(perPayRaw);
+    const preferAnnual = activeKey === annualKey;
+    const preferPerPay = activeKey === perPayKey;
 
-    if (annualValue > 0) {
+    if (preferPerPay && hasPerPay) {
+      state[annualKey] = perPayValue > 0 ? Math.round(perPayValue * periods * 100) / 100 : perPayValue;
+      return;
+    }
+
+    if (preferAnnual && hasAnnual) {
+      state[perPayKey] = annualValue > 0 ? Math.round((annualValue / periods) * 100) / 100 : annualValue;
+      return;
+    }
+
+    if (annualValue > 0 && (!hasPerPay || perPayValue === 0)) {
       state[perPayKey] = Math.round((annualValue / periods) * 100) / 100;
-    } else if (perPayValue > 0) {
+    } else if (perPayValue > 0 && (!hasAnnual || annualValue === 0)) {
       state[annualKey] = Math.round(perPayValue * periods * 100) / 100;
     } else if (hasAnnual || hasPerPay) {
       state[annualKey] = hasAnnual ? annualValue : "";
@@ -1122,8 +1162,19 @@ const bindLineItemList = (state, config) => {
       if (!field) return;
       const row = event.target.closest(".line-item-row");
       if (!row) return;
-      let value =
-        field === "title" ? (event.target.textContent ?? "") : event.target.value;
+      let value = field === "title" ? (event.target.textContent ?? "") : event.target.value;
+      if (field === "title") {
+        value = sanitizeTextValue(value);
+        if (event.target.textContent !== value) {
+          event.target.textContent = value;
+        }
+      } else if (field === "perPay") {
+        const cleaned = sanitizeNumericString(value);
+        if (cleaned !== value) {
+          event.target.value = cleaned;
+        }
+        value = cleaned;
+      }
       if (field === "title" && event.type === "blur") {
         value = value.trim();
         event.target.textContent = value;
@@ -1797,10 +1848,18 @@ const attachModelInputs = (state) => {
         state[key] = input.value;
       } else {
         const raw = input.value;
-        const numeric = coerceNumber(raw);
-        state[key] = raw === "" ? "" : numeric;
+        if (input.type === "number") {
+          const cleaned = sanitizeNumericString(raw);
+          if (cleaned !== raw) input.value = cleaned;
+          const numeric = coerceNumber(cleaned);
+          state[key] = cleaned === "" ? "" : numeric;
+        } else {
+          const cleanedText = sanitizeTextValue(raw);
+          if (cleanedText !== raw) input.value = cleanedText;
+          state[key] = cleanedText;
+        }
       }
-      recalcDerivedFields(state);
+      recalcDerivedFields(state, key);
       saveState(state);
       updateInputsFromState(state, { skipActive: true });
       refreshBudget(state);
@@ -1821,11 +1880,20 @@ const handleBudgetInput = (state, event) => {
   const context = findNodeContext(state.budgetTree, row.dataset.id);
   if (!context) return;
   const { node } = context;
+  const isNumericField = ["percent", "amount", "targetPercent"].includes(field);
+  if (isNumericField) {
+    const cleaned = sanitizeNumericString(target.value);
+    if (cleaned !== target.value) target.value = cleaned;
+  }
 
   if (field === "title") {
-    node.title = target.value;
+    const cleaned = sanitizeTextValue(target.value);
+    if (cleaned !== target.value) target.value = cleaned;
+    node.title = cleaned;
   } else if (field === "note") {
-    node.note = target.value;
+    const cleaned = sanitizeTextValue(target.value);
+    if (cleaned !== target.value) target.value = cleaned;
+    node.note = cleaned;
   } else if (field === "percent" && node.type === "item") {
     node.percent = coerceNumber(target.value);
   } else if (field === "amount" && node.type === "item") {
