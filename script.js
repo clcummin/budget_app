@@ -826,7 +826,9 @@ const bindLineItemList = (state, config) => {
       const updated = updateLineItem(state[listKey], row.dataset.id, field, value);
       if (updated) {
         saveState(state);
-        refreshBudget(state);
+        if (field !== "title" || event.type === "blur") {
+          refreshBudget(state);
+        }
       }
     };
 
