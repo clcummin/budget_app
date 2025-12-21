@@ -159,7 +159,7 @@ const defaultState = {
   salaryAnnual: 0,
   salaryPerPay: 0,
   periodsPerYear: 26,
-  standardDeductionAnnual: 15070,
+  standardDeductionAnnual: 15750,
   w4ExtraAnnual: 0,
   w4ExtraPerPay: 0,
   k401Percent: 0,
