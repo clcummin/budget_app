@@ -89,6 +89,13 @@ p {
   min-width: 240px;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .header-toolbar {
   display: flex;
   justify-content: flex-start;
@@ -168,6 +175,27 @@ p {
 
 .view:not(.active) {
   display: none;
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 0 32px 12px;
+}
+
+.stat-card {
+  background: rgba(17, 24, 39, 0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.stat-card .metric {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 4px 0;
 }
 
 .card {

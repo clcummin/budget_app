@@ -21,7 +21,10 @@
           <span class="pill entry">You enter this</span>
           <span class="pill computed">Calculated for you</span>
         </div>
-        <button id="reset-button" class="ghost">Reset to defaults</button>
+        <div class="header-buttons">
+          <button id="sample-button" class="ghost">Load sample plan</button>
+          <button id="reset-button" class="ghost">Reset to defaults</button>
+        </div>
       </div>
     </div>
 
@@ -33,6 +36,24 @@
       </nav>
     </div>
   </header>
+
+  <section class="quick-stats" id="quick-stats">
+    <div class="stat-card" data-stat="net">
+      <p class="muted">Net monthly</p>
+      <p class="metric">$0</p>
+      <p class="muted subtle">$0 / yr</p>
+    </div>
+    <div class="stat-card" data-stat="planned">
+      <p class="muted">Planned monthly</p>
+      <p class="metric">$0</p>
+      <p class="muted subtle">0.0% allocated</p>
+    </div>
+    <div class="stat-card" data-stat="cushion">
+      <p class="muted">Unassigned cushion</p>
+      <p class="metric">$0</p>
+      <p class="muted subtle">Budget against income to see room</p>
+    </div>
+  </section>
 
   <main class="page-views">
     <section id="income-view" class="layout view active">
