@@ -2,8 +2,6 @@ const STORAGE_KEY = "budget-planner-state-v4";
 const SOCIAL_SECURITY_WAGE_BASE = 174600; // 2025 wage base
 const SDI_WAGE_BASE = 176600; // 2025 CA SDI / VDI wage limit
 const MEDICARE_SURTAX_DEFAULT_THRESHOLD = 200000;
-const K401_EMPLOYEE_LIMIT = 23000; // 2025 employee deferral limit
-const K401_EMPLOYEE_LIMIT = 23000; // 2025 employee deferral limit
 const MEDICARE_SURTAX_THRESHOLDS = {
   single: 200000,
   married: 250000,
@@ -564,6 +562,7 @@ const calculatePay = (state) => {
   const grossAnnual = Math.max(0, coerceNumber(state.salaryAnnual) || coerceNumber(state.salaryPerPay) * periods);
   const grossPay = grossAnnual / periods;
 
+  const pretaxFrom401k = grossPay * (coerceNumber(state.k401Percent) / 100);
   const hsaAnnual = annualFromState(state, "hsaAnnual", "hsaPerPay", periods);
   const dentalAnnual = annualFromState(state, "dentalAnnual", "dentalPerPay", periods);
   const medicalAnnual = annualFromState(state, "medicalAnnual", "medicalPerPay", periods);
@@ -573,41 +572,14 @@ const calculatePay = (state) => {
   const dentalPerPay = dentalAnnual / periods;
   const medicalPerPay = medicalAnnual / periods;
   const otherPretaxPerPay = otherPretaxAnnual / periods;
-  const pretaxFixedPerPay = hsaPerPay + dentalPerPay + medicalPerPay + otherPretaxPerPay;
 
-  const k401Rate = coerceNumber(state.k401Percent) / 100;
-  const k401PerPayNominal = grossPay * k401Rate;
+  const pretax = pretaxFrom401k + hsaPerPay + dentalPerPay + medicalPerPay + otherPretaxPerPay;
+  const payrollTaxableIncome = Math.max(0, grossPay - pretax);
+  const annualPayrollTaxable = payrollTaxableIncome * periods;
 
-  let pretaxAnnual = 0;
-  let pretaxPerPayFirst = 0;
-  let payrollTaxableAnnual = 0;
-  let payrollTaxableFirst = 0;
-  const k401Sequence = [];
-  const payrollTaxableSequence = [];
-
-  let k401Remaining = K401_EMPLOYEE_LIMIT;
-  for (let i = 0; i < periods; i += 1) {
-    const k401Contribution = Math.max(0, Math.min(k401PerPayNominal, k401Remaining));
-    k401Sequence.push(k401Contribution);
-    const pretaxThisPay = k401Contribution + pretaxFixedPerPay;
-    const payrollTaxableThisPay = Math.max(0, grossPay - pretaxThisPay);
-    payrollTaxableSequence.push(payrollTaxableThisPay);
-    pretaxAnnual += pretaxThisPay;
-    payrollTaxableAnnual += payrollTaxableThisPay;
-    if (i === 0) {
-      pretaxPerPayFirst = pretaxThisPay;
-      payrollTaxableFirst = payrollTaxableThisPay;
-    }
-    k401Remaining = Math.max(0, k401Remaining - k401Contribution);
-  }
-
-  const k401Annual = k401Sequence.reduce((sum, value) => sum + value, 0);
-  const k401PerPayFirst = k401Sequence[0] ?? 0;
-
-  const standardDeductionAnnual = coerceNumber(state.standardDeductionAnnual);
-  const annualTaxable = Math.max(0, grossAnnual - pretaxAnnual - standardDeductionAnnual);
-  const standardDeductionPerPay = standardDeductionAnnual / periods;
-  const taxableIncome = Math.max(0, payrollTaxableFirst - standardDeductionPerPay);
+  const standardDeductionPerPay = coerceNumber(state.standardDeductionAnnual) / periods;
+  const taxableIncome = Math.max(0, grossPay - pretax - standardDeductionPerPay);
+  const annualTaxable = taxableIncome * periods;
 
   const bracketOverrideRate = coerceNumber(state.federalBracketOverride);
   const bracketOverrideActive = Number.isFinite(bracketOverrideRate) && bracketOverrideRate > 0;
@@ -634,78 +606,28 @@ const calculatePay = (state) => {
   const stateTaxBase = stateTaxAnnuals.base / periods;
   const stateMentalHealth = stateTaxAnnuals.surcharge / periods;
   const stateExtra = stateExtraAnnual / periods;
-  const stateTaxAnnual = stateTaxAnnuals.total + stateExtraAnnual;
-  const stateTax = stateTaxAnnual / periods;
+  const stateTax = (stateTaxAnnuals.total + stateExtraAnnual) / periods;
 
-  const socialSecurityRate = coerceNumber(state.socialSecurityRate) / 100;
-  const medicareRate = coerceNumber(state.medicareRate) / 100;
+  const socialSecurityTax =
+    (Math.min(annualPayrollTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) /
+    periods;
+  const medicareTax = (annualPayrollTaxable * (coerceNumber(state.medicareRate) / 100)) / periods;
   const medicareSurtaxRate = coerceNumber(state.medicareSurtaxRate) / 100;
   const defaultSurtaxThreshold = MEDICARE_SURTAX_THRESHOLDS[filingStatus] ?? MEDICARE_SURTAX_DEFAULT_THRESHOLD;
   const medicareSurtaxThreshold =
     coerceNumber(state.medicareSurtaxThreshold) || defaultSurtaxThreshold || MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+  const medicareSurtaxAnnual = Math.max(0, annualPayrollTaxable - medicareSurtaxThreshold) * medicareSurtaxRate;
+  const medicareSurtax = medicareSurtaxAnnual / periods;
   const sdiWageBase = coerceNumber(state.sdiWageBase) || SDI_WAGE_BASE;
-  const sdiRateDecimal = coerceNumber(state.sdiRate) / 100;
-
-  let ssRemaining = SOCIAL_SECURITY_WAGE_BASE;
-  let sdiRemaining = sdiWageBase;
-  let cumulativeMedicareBase = 0;
-
-  let ssAnnual = 0;
-  let medicareAnnual = 0;
-  let medicareSurtaxAnnual = 0;
-  let sdiAnnual = 0;
-
-  let ssPerPayFirst = 0;
-  let medicarePerPayFirst = 0;
-  let medicareSurtaxPerPayFirst = 0;
-  let sdiPerPayFirst = 0;
-
-  payrollTaxableSequence.forEach((payrollBase, index) => {
-    const ssTaxable = Math.max(0, Math.min(payrollBase, ssRemaining));
-    const sdiTaxable = Math.max(0, Math.min(payrollBase, sdiRemaining));
-
-    const ssThis = ssTaxable * socialSecurityRate;
-    const sdiThis = sdiTaxable * sdiRateDecimal;
-    const medicareThis = payrollBase * medicareRate;
-
-    cumulativeMedicareBase += payrollBase;
-    const medicareSurtaxTaxable = Math.max(0, cumulativeMedicareBase - medicareSurtaxThreshold);
-    const medicareSurtaxThis = Math.min(payrollBase, medicareSurtaxTaxable) * medicareSurtaxRate;
-
-    if (index === 0) {
-      ssPerPayFirst = ssThis;
-      sdiPerPayFirst = sdiThis;
-      medicarePerPayFirst = medicareThis;
-      medicareSurtaxPerPayFirst = medicareSurtaxThis;
-    }
-
-    ssAnnual += ssThis;
-    sdiAnnual += sdiThis;
-    medicareAnnual += medicareThis;
-    medicareSurtaxAnnual += medicareSurtaxThis;
-
-    ssRemaining = Math.max(0, ssRemaining - ssTaxable);
-    sdiRemaining = Math.max(0, sdiRemaining - sdiTaxable);
-  });
-
-  const taxes =
-    federalTax +
-    stateTax +
-    ssPerPayFirst +
-    medicarePerPayFirst +
-    medicareSurtaxPerPayFirst +
-    sdiPerPayFirst;
-  const taxesAnnual = federalTaxAnnual + stateTaxAnnual + ssAnnual + medicareAnnual + medicareSurtaxAnnual + sdiAnnual;
+  const sdiTaxAnnual = Math.min(annualPayrollTaxable, sdiWageBase) * (coerceNumber(state.sdiRate) / 100);
+  const sdiTax = sdiTaxAnnual / periods;
+  const taxes = federalTax + stateTax + socialSecurityTax + medicareTax + medicareSurtax + sdiTax;
 
   const afterTaxPerPay = state.afterTaxDeductions.reduce((sum, item) => sum + coerceNumber(item.perPay), 0);
   const postTax = afterTaxPerPay;
-  const postTaxAnnual = postTax * periods;
 
   const additionalIncome = state.additionalIncomeItems.reduce((sum, item) => sum + coerceNumber(item.perPay), 0);
-  const additionalAnnual = additionalIncome * periods;
-  const netPay = grossPay - pretaxPerPayFirst - taxes - postTax + additionalIncome;
-  const netAnnual = grossAnnual - pretaxAnnual - taxesAnnual - postTaxAnnual + additionalAnnual;
-  const netMonthly = netAnnual / 12;
+  const netPay = grossPay - pretax - taxes - postTax + additionalIncome;
 
   const toMonth = (value) => (value * periods) / 12;
   const toYear = (value) => value * periods;
@@ -713,19 +635,15 @@ const calculatePay = (state) => {
 
   return {
     gross: bundle(grossPay),
-    pretax: { pay: pretaxPerPayFirst, month: pretaxAnnual / 12, year: pretaxAnnual },
-    taxable: { pay: taxableIncome, month: annualTaxable / 12, year: annualTaxable },
-    taxes: {
-      pay: taxes,
-      month: taxesAnnual / 12,
-      year: taxesAnnual
-    },
+    pretax: bundle(pretax),
+    taxable: bundle(taxableIncome),
+    taxes: bundle(taxes),
     posttax: bundle(postTax),
     additionalIncome: bundle(additionalIncome),
-    net: { pay: netPay, month: netMonthly, year: netAnnual },
+    net: bundle(netPay),
     details: {
       grossAnnual,
-      standardDeductionAnnual,
+      standardDeductionAnnual: coerceNumber(state.standardDeductionAnnual),
       annualTaxable,
       expectedFederalBracket,
       usedFederalRate,
@@ -735,7 +653,7 @@ const calculatePay = (state) => {
       effectiveFederalRate:
         annualTaxable > 0 ? (calculateFederalAnnualTax(annualTaxable, overrideRateDecimal) / annualTaxable) * 100 : 0,
       pretaxBreakdown: {
-        retirement401k: { pay: k401PerPayFirst, month: k401Annual / 12, year: k401Annual },
+        retirement401k: bundle(pretaxFrom401k),
         hsa: bundle(hsaPerPay),
         dental: bundle(dentalPerPay),
         medical: bundle(medicalPerPay),
@@ -748,16 +666,16 @@ const calculatePay = (state) => {
         items: state.additionalIncomeItems.map((item) => ({ label: item.title, bundle: bundle(coerceNumber(item.perPay)) }))
       },
       taxBreakdown: {
-        federalBracket: { pay: federalFromBrackets, month: federalTaxAnnual / 12, year: federalTaxAnnual },
+        federalBracket: bundle(federalFromBrackets),
         federalExtraPercent: bundle(federalExtraPercent),
         federalW4: bundle(federalExtraWithholding),
         stateBase: bundle(stateTaxBase),
         stateMentalHealth: bundle(stateMentalHealth),
         stateExtra: bundle(stateExtra),
-        socialSecurity: { pay: ssPerPayFirst, month: ssAnnual / 12, year: ssAnnual },
-        medicare: { pay: medicarePerPayFirst, month: medicareAnnual / 12, year: medicareAnnual },
-        medicareSurtax: { pay: medicareSurtaxPerPayFirst, month: medicareSurtaxAnnual / 12, year: medicareSurtaxAnnual },
-        sdi: { pay: sdiPerPayFirst, month: sdiAnnual / 12, year: sdiAnnual }
+        socialSecurity: bundle(socialSecurityTax),
+        medicare: bundle(medicareTax),
+        medicareSurtax: bundle(medicareSurtax),
+        sdi: bundle(sdiTax)
       }
     }
   };
