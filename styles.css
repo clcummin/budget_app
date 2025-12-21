@@ -350,6 +350,18 @@ p {
   font-size: 16px;
 }
 
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #60a5fa;
+}
+
 .field.entry input {
   background: linear-gradient(135deg, rgba(29, 78, 216, 0.25), rgba(29, 78, 216, 0.12));
   border-color: var(--entry-border);
