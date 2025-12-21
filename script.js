@@ -1,6 +1,12 @@
 const STORAGE_KEY = "budget-planner-state-v4";
 const SOCIAL_SECURITY_WAGE_BASE = 174600; // 2025 wage base
+const SDI_WAGE_BASE = 176600; // 2025 CA SDI / VDI wage limit
 const MEDICARE_SURTAX_DEFAULT_THRESHOLD = 200000;
+const MEDICARE_SURTAX_THRESHOLDS = {
+  single: 200000,
+  married: 250000,
+  hoh: 200000
+};
 const MENTAL_HEALTH_SURCHARGE_RATE = 0.01;
 const MENTAL_HEALTH_SURCHARGE_THRESHOLD = 1000000;
 
@@ -173,8 +179,9 @@ const defaultState = {
   socialSecurityRate: 6.2,
   medicareRate: 1.45,
   medicareSurtaxRate: 0.9,
-  medicareSurtaxThreshold: MEDICARE_SURTAX_DEFAULT_THRESHOLD,
-  sdiRate: 1,
+  medicareSurtaxThreshold: MEDICARE_SURTAX_THRESHOLDS.single,
+  sdiRate: 1.1,
+  sdiWageBase: SDI_WAGE_BASE,
   afterTaxDeductions: [],
   additionalIncomeItems: [],
   budgetTree: structuredClone(defaultBudgetTree),
@@ -484,6 +491,8 @@ const calculatePay = (state) => {
   const otherPretaxPerPay = otherPretaxAnnual / periods;
 
   const pretax = pretaxFrom401k + hsaPerPay + dentalPerPay + medicalPerPay + otherPretaxPerPay;
+  const payrollTaxableIncome = Math.max(0, grossPay - pretax);
+  const annualPayrollTaxable = payrollTaxableIncome * periods;
 
   const standardDeductionPerPay = coerceNumber(state.standardDeductionAnnual) / periods;
   const taxableIncome = Math.max(0, grossPay - pretax - standardDeductionPerPay);
@@ -517,13 +526,18 @@ const calculatePay = (state) => {
   const stateTax = (stateTaxAnnuals.total + stateExtraAnnual) / periods;
 
   const socialSecurityTax =
-    (Math.min(annualTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) / periods;
-  const medicareTax = (annualTaxable * (coerceNumber(state.medicareRate) / 100)) / periods;
+    (Math.min(annualPayrollTaxable, SOCIAL_SECURITY_WAGE_BASE) * (coerceNumber(state.socialSecurityRate) / 100)) /
+    periods;
+  const medicareTax = (annualPayrollTaxable * (coerceNumber(state.medicareRate) / 100)) / periods;
   const medicareSurtaxRate = coerceNumber(state.medicareSurtaxRate) / 100;
-  const medicareSurtaxThreshold = coerceNumber(state.medicareSurtaxThreshold) || MEDICARE_SURTAX_DEFAULT_THRESHOLD;
-  const medicareSurtaxAnnual = Math.max(0, annualTaxable - medicareSurtaxThreshold) * medicareSurtaxRate;
+  const defaultSurtaxThreshold = MEDICARE_SURTAX_THRESHOLDS[filingStatus] ?? MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+  const medicareSurtaxThreshold =
+    coerceNumber(state.medicareSurtaxThreshold) || defaultSurtaxThreshold || MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+  const medicareSurtaxAnnual = Math.max(0, annualPayrollTaxable - medicareSurtaxThreshold) * medicareSurtaxRate;
   const medicareSurtax = medicareSurtaxAnnual / periods;
-  const sdiTax = taxableIncome * (coerceNumber(state.sdiRate) / 100);
+  const sdiWageBase = coerceNumber(state.sdiWageBase) || SDI_WAGE_BASE;
+  const sdiTaxAnnual = Math.min(annualPayrollTaxable, sdiWageBase) * (coerceNumber(state.sdiRate) / 100);
+  const sdiTax = sdiTaxAnnual / periods;
   const taxes = federalTax + stateTax + socialSecurityTax + medicareTax + medicareSurtax + sdiTax;
 
   const afterTaxPerPay = state.afterTaxDeductions.reduce((sum, item) => sum + coerceNumber(item.perPay), 0);
