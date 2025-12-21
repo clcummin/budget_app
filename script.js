@@ -206,7 +206,10 @@ const currency = (value) => {
   });
 };
 
-const percentDisplay = (value) => `${value.toFixed(1)}%`;
+const percentDisplay = (value) => {
+  const numeric = Number.isFinite(value) ? value : 0;
+  return `${numeric.toFixed(1)}%`;
+};
 
 const isBlank = (value) => value === "" || value === null || value === undefined;
 
@@ -260,6 +263,86 @@ const sanitizeTree = (nodes = []) =>
         note: node.note ?? ""
       };
     });
+
+const sampleBudgetTree = [
+  {
+    type: "section",
+    title: "Fixed costs",
+    note: "Mortgage / rent, utilities, and must-haves",
+    targetPercent: 45,
+    collapsed: false,
+    children: [
+      { type: "item", title: "Rent or mortgage", percent: 30, note: "Housing + HOA / insurance" },
+      { type: "item", title: "Utilities", percent: 4, note: "Power, water, trash" },
+      { type: "item", title: "Insurance", percent: 4, note: "Auto, renters / homeowners" },
+      { type: "item", title: "Phone & internet", percent: 3, note: "Cell + home internet" },
+      { type: "item", title: "Transit / parking", percent: 4, note: "Gas, rideshare, parking" }
+    ]
+  },
+  {
+    type: "section",
+    title: "Goals",
+    note: "Savings, investing, and debt payoff",
+    targetPercent: 25,
+    collapsed: false,
+    children: [
+      { type: "item", title: "Emergency fund", percent: 8 },
+      { type: "item", title: "Investing", percent: 12, note: "Brokerage / IRA" },
+      { type: "item", title: "Debt payoff", percent: 5, note: "Student loans, cards" }
+    ]
+  },
+  {
+    type: "section",
+    title: "Lifestyle",
+    note: "Day-to-day spending",
+    targetPercent: 20,
+    collapsed: false,
+    children: [
+      { type: "item", title: "Groceries", percent: 10 },
+      { type: "item", title: "Dining out & coffee", percent: 4 },
+      { type: "item", title: "Health & fitness", percent: 3 },
+      { type: "item", title: "Fun, gifts, hobbies", percent: 3 }
+    ]
+  },
+  {
+    type: "section",
+    title: "Future plans",
+    note: "Larger goals and irregular expenses",
+    targetPercent: 10,
+    collapsed: false,
+    children: [
+      { type: "item", title: "Travel sinking fund", percent: 6 },
+      { type: "item", title: "Home / car projects", percent: 4 }
+    ]
+  }
+];
+
+const createSampleState = () => ({
+  ...structuredClone(defaultState),
+  salaryAnnual: 145000,
+  periodsPerYear: 26,
+  standardDeductionAnnual: 15750,
+  w4ExtraAnnual: 780,
+  k401Percent: 8,
+  hsaAnnual: 3600,
+  dentalAnnual: 480,
+  medicalAnnual: 2400,
+  otherPretaxAnnual: 600,
+  federalRate: 1,
+  stateRate: 0.5,
+  afterTaxDeductions: sanitizeLineItems([
+    { title: "Parking", perPay: 45 },
+    { title: "Charitable giving", perPay: 50 },
+    { title: "Subscriptions", perPay: 28 }
+  ]),
+  additionalIncomeItems: sanitizeLineItems([
+    { title: "Gym reimbursement", perPay: 25 },
+    { title: "Commuter credit", perPay: 35 },
+    { title: "Wellness stipend", perPay: 15 }
+  ]),
+  budgetTree: sanitizeTree(sampleBudgetTree),
+  collapsedCards: { ...defaultState.collapsedCards, summary: false }
+});
 
 const migrateLegacyBudget = (rows = []) => [
   {
@@ -1198,6 +1281,33 @@ const updatePeekBadges = (state, calculations, totals, targets) => {
   }
 };
 
+const updateQuickStats = (calculations, totals) => {
+  const quickStats = document.getElementById("quick-stats");
+  if (!quickStats) return;
+
+  const getCard = (key) => quickStats.querySelector(`[data-stat=\"${key}\"]`);
+  const setCard = (card, primary, secondary) => {
+    if (!card) return;
+    const metric = card.querySelector(".metric");
+    const sub = card.querySelector(".subtle");
+    if (metric) metric.textContent = primary;
+    if (sub) sub.textContent = secondary;
+  };
+
+  const netMonthly = calculations.net.month;
+  const netAnnual = calculations.net.year;
+  setCard(getCard("net"), currency(netMonthly), `${currency(netAnnual)} / yr`);
+
+  const plannedMonthly = totals.amount;
+  const plannedPercent = netMonthly > 0 ? (plannedMonthly / netMonthly) * 100 : 0;
+  setCard(getCard("planned"), currency(plannedMonthly), `${percentDisplay(plannedPercent)} allocated`);
+
+  const cushion = netMonthly - plannedMonthly;
+  const cushionMessage =
+    netMonthly > 0 ? (cushion >= 0 ? "Room to spare" : "Overplanned") : "Budget against income to see room";
+  setCard(getCard("cushion"), currency(cushion), cushionMessage);
+};
+
 const findNodeContext = (nodes, id, parent = null) => {
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index];
@@ -1436,6 +1546,7 @@ const refreshBudget = (state) => {
   });
   const totals = calculateTreeTotals(state.budgetTree, netMonthly);
   const targets = calculateSectionTargets(state.budgetTree, netMonthly);
+  updateQuickStats(calculations, totals);
   renderCharts(state, calculations, totals, targets);
   updatePeekBadges(state, calculations, totals, targets);
 };
@@ -1614,12 +1725,13 @@ const bindBudgetListeners = (state, config) => {
   }
 };
 
-const resetState = (state) => {
-  const fresh = structuredClone(defaultState);
+const replaceState = (state, nextState) => {
   Object.keys(state).forEach((key) => delete state[key]);
-  Object.assign(state, fresh);
+  Object.assign(state, nextState);
   saveState(state);
 };
+
+const resetState = (state) => replaceState(state, structuredClone(defaultState));
 
 const applyCardCollapse = (state) => {
   document.querySelectorAll("[data-collapsible]").forEach((card) => {
@@ -1660,13 +1772,26 @@ const init = () => {
   applyCardCollapse(state);
 
   const resetButton = document.getElementById("reset-button");
-  resetButton.addEventListener("click", () => {
-    resetState(state);
-    recalcDerivedFields(state);
-    updateInputsFromState(state);
-    refreshBudget(state);
-    applyCardCollapse(state);
-  });
+  if (resetButton) {
+    resetButton.addEventListener("click", () => {
+      resetState(state);
+      recalcDerivedFields(state);
+      updateInputsFromState(state);
+      refreshBudget(state);
+      applyCardCollapse(state);
+    });
+  }
+
+  const sampleButton = document.getElementById("sample-button");
+  if (sampleButton) {
+    sampleButton.addEventListener("click", () => {
+      replaceState(state, createSampleState());
+      recalcDerivedFields(state);
+      updateInputsFromState(state);
+      refreshBudget(state);
+      applyCardCollapse(state);
+    });
+  }
 
   const tabButtons = document.querySelectorAll(".view-tabs .tab");
   tabButtons.forEach((button) => {
