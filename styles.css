@@ -689,7 +689,7 @@ p {
 
 .line-item-row {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(0, 2fr) auto;
   gap: 14px;
   padding: 14px;
   border: 1px solid var(--border);
@@ -706,33 +706,6 @@ p {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
-}
-
-.line-item-readout {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.65);
-  padding: 10px 12px;
-  display: grid;
-  gap: 4px;
-  align-content: start;
-}
-
-.line-item-readout__label {
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.01em;
-}
-
-.line-item-readout__value {
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.line-item-readout__subtext {
-  color: var(--muted);
-  font-size: 13px;
 }
 
 .line-item-actions {
