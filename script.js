@@ -57,6 +57,12 @@ const FILING_STATUS_LABELS = {
   hoh: "Head of household"
 };
 
+const CA_FILING_LABELS = {
+  single: "Single / Married filing separately",
+  married: "Married filing jointly / QSS",
+  hoh: "Head of household"
+};
+
 const FEDERAL_BRACKETS_2025 = {
   single: [
     { upTo: 11975, rate: 0.1 },
@@ -102,18 +108,6 @@ const PAY_FREQUENCIES = [
   { key: "semiannual", periods: 2 },
   { key: "annual", periods: 1 }
 ];
-
-const scaleBrackets = (brackets, multiplier) =>
-  brackets.map((bracket) => ({
-    upTo: Number.isFinite(bracket.upTo) ? bracket.upTo * multiplier : Infinity,
-    rate: bracket.rate
-  }));
-
-const FEDERAL_BRACKETS_2025 = {
-  single: FEDERAL_BRACKETS_2025_SINGLE,
-  married: scaleBrackets(FEDERAL_BRACKETS_2025_SINGLE, 2),
-  hoh: scaleBrackets(FEDERAL_BRACKETS_2025_SINGLE, 1.5)
-};
 
 const defaultBudgetTree = [
   {
@@ -697,7 +691,8 @@ const calculatePay = (state) => {
   const periods = Math.max(1, coerceNumber(state.periodsPerYear));
   const grossAnnual = Math.max(0, coerceNumber(state.salaryAnnual) || coerceNumber(state.salaryPerPay) * periods);
   const grossPay = grossAnnual / periods;
-  const federalFilingStatus = sanitizeFilingStatus(state.federalFilingStatus ?? state.stateFilingStatus);
+  const stateFilingStatus = sanitizeFilingStatus(state.stateFilingStatus);
+  const federalFilingStatus = sanitizeFilingStatus(state.federalFilingStatus ?? stateFilingStatus);
 
   const pretaxFrom401k = grossPay * (coerceNumber(state.k401Percent) / 100);
   const hsaAnnual = annualFromState(state, "hsaAnnual", "hsaPerPay", periods);
@@ -714,26 +709,24 @@ const calculatePay = (state) => {
   const payrollTaxableIncome = Math.max(0, grossPay - pretax);
   const annualPayrollTaxable = payrollTaxableIncome * periods;
 
-  const filingStatus = sanitizeFilingStatus(state.stateFilingStatus);
   const standardDeductionAnnual =
-    coerceNumber(state.standardDeductionAnnual) || FEDERAL_STANDARD_DEDUCTION_2025[filingStatus] || 0;
+    coerceNumber(state.standardDeductionAnnual) || FEDERAL_STANDARD_DEDUCTION_2025[federalFilingStatus] || 0;
   const standardDeductionPerPay = standardDeductionAnnual / periods;
   const taxableIncome = Math.max(0, grossPay - pretax - standardDeductionPerPay);
   const annualTaxable = taxableIncome * periods;
 
-  const federalFilingStatus = sanitizeFilingStatus(state.federalFilingStatus);
   const bracketOverrideRate = coerceNumber(state.federalBracketOverride);
   const bracketOverrideActive = Number.isFinite(bracketOverrideRate) && bracketOverrideRate > 0;
   const overrideRateDecimal = bracketOverrideActive ? bracketOverrideRate / 100 : null;
 
   const w4ExtraAnnual = annualFromState(state, "w4ExtraAnnual", "w4ExtraPerPay", periods);
   const w4Step3Credits = coerceNumber(state.w4Step3Credits);
-  const expectedFederalBracket = findFederalBracket(annualTaxable, filingStatus);
+  const expectedFederalBracket = findFederalBracket(annualTaxable, federalFilingStatus);
   const federalWithholding = calculateFederalWithholding({
     taxableWagesPerPay: payrollTaxableIncome,
     taxableIncomeAfterDeductions: taxableIncome,
     periods,
-    filingStatus,
+    filingStatus: federalFilingStatus,
     standardDeductionAnnual,
     flatRateOverride: overrideRateDecimal,
     extraPercentRate: coerceNumber(state.federalRate),
@@ -799,8 +792,9 @@ const calculatePay = (state) => {
       expectedStateBracket,
       usedStateRate,
       federalFilingStatus,
-      stateFilingStatus: filingStatus,
+      stateFilingStatus,
       effectiveFederalRate: federalWithholding.effectiveRate,
+      standardDeductionPerPay,
       pretaxBreakdown: {
         retirement401k: bundle(pretaxFrom401k),
         hsa: bundle(hsaPerPay),
@@ -975,7 +969,6 @@ const renderTaxFields = (calculated) => {
     expectedFederalBracket,
     federalFilingStatus,
     usedFederalRate,
-    federalFilingStatus,
     expectedStateBracket,
     usedStateRate,
     stateFilingStatus
