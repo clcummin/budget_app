@@ -724,6 +724,9 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     row.className = "line-item-row";
     row.dataset.id = item.id;
 
+    const fields = document.createElement("div");
+    fields.className = "line-item-fields";
+
     const titleField = document.createElement("label");
     titleField.className = "field entry";
     const titleLabel = document.createElement("span");
@@ -764,15 +767,38 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
       : "Monthly & annual roll up automatically";
     perPayField.appendChild(hint);
 
+    fields.appendChild(titleField);
+    fields.appendChild(perPayField);
+
+    const readout = document.createElement("div");
+    readout.className = "line-item-readout";
+    const readoutLabel = document.createElement("span");
+    readoutLabel.className = "line-item-readout__label";
+    readoutLabel.textContent = "Per paycheck";
+    const readoutValue = document.createElement("span");
+    readoutValue.className = "line-item-readout__value";
+    readoutValue.textContent = hasValue ? currency(perPayNumeric) : "Enter amount";
+    const readoutSubtext = document.createElement("span");
+    readoutSubtext.className = "line-item-readout__subtext";
+    readoutSubtext.textContent = hasValue
+      ? `Monthly ${currency((perPayNumeric * periods) / 12)} • Annual ${currency(perPayNumeric * periods)}`
+      : "Rolls up to monthly & annual totals";
+    readout.appendChild(readoutLabel);
+    readout.appendChild(readoutValue);
+    readout.appendChild(readoutSubtext);
+
+    const actions = document.createElement("div");
+    actions.className = "line-item-actions";
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "action-chip danger";
     remove.textContent = "Delete";
     remove.dataset.action = "delete";
+    actions.appendChild(remove);
 
-    row.appendChild(titleField);
-    row.appendChild(perPayField);
-    row.appendChild(remove);
+    row.appendChild(fields);
+    row.appendChild(readout);
+    row.appendChild(actions);
     container.appendChild(row);
   });
 
