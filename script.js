@@ -774,13 +774,6 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     const perPayNumeric = coerceNumber(item.perPay);
     const hasValue = item.perPay !== "" && Number.isFinite(perPayNumeric);
     if (hasValue) perPay.classList.add("entered");
-    const hint = document.createElement("div");
-    hint.className = "field-hint";
-    hint.textContent = hasValue
-      ? `Monthly ${currency((perPayNumeric * periods) / 12)} • Annual ${currency(perPayNumeric * periods)}`
-      : "Monthly & annual roll up automatically";
-    perPayField.appendChild(hint);
-
     fields.appendChild(titleField);
     fields.appendChild(perPayField);
 
@@ -796,7 +789,7 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     readoutSubtext.className = "line-item-readout__subtext";
     readoutSubtext.textContent = hasValue
       ? `Monthly ${currency((perPayNumeric * periods) / 12)} • Annual ${currency(perPayNumeric * periods)}`
-      : "Rolls up to monthly & annual totals";
+      : "Enter an amount to see monthly & annual totals";
     readout.appendChild(readoutLabel);
     readout.appendChild(readoutValue);
     readout.appendChild(readoutSubtext);
@@ -805,8 +798,9 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     actions.className = "line-item-actions";
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "action-chip danger";
-    remove.textContent = "Delete";
+    remove.className = "icon-button danger icon-button--compact";
+    remove.innerHTML = "🗑️";
+    remove.setAttribute("aria-label", "Delete entry");
     remove.dataset.action = "delete";
     actions.appendChild(remove);
 
