@@ -182,6 +182,14 @@
                 <option value="hoh">Head of household</option>
               </select>
             </label>
+            <label class="field entry checkbox-field">
+              <span>W-4 Step 2 (multiple jobs checked)</span>
+              <input type="checkbox" data-model="w4MultipleJobs" />
+            </label>
+            <label class="field entry">
+              <span>W-4 Step 3 credits (annual)</span>
+              <input type="number" data-model="w4Step3Credits" inputmode="decimal" step="0.01" />
+            </label>
             <label class="field computed">
               <span>Expected federal bracket</span>
               <div class="calculated-readout" data-output="federalBracket"></div>
