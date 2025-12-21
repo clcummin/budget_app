@@ -413,6 +413,11 @@ p {
   transform: translateY(-1px);
 }
 
+.ghost.compact {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
 .collapse-toggle {
   width: 32px;
   height: 32px;
@@ -475,6 +480,20 @@ p {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.inline-link {
+  background: none;
+  border: none;
+  color: var(--accent-2);
+  cursor: pointer;
+  padding: 0;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.inline-link:hover {
+  color: #67e8f9;
 }
 
 .summary {
@@ -552,6 +571,13 @@ p {
   display: grid;
   grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 10px;
+}
+
+.summary-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .snapshot-grid {
@@ -887,6 +913,32 @@ p {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.tax-summary-grid .calculated-readout {
+  min-height: 60px;
+}
+
+.tax-advanced {
+  margin-top: 12px;
+}
+
+.tax-advanced summary {
+  list-style: none;
+  margin-bottom: 10px;
+}
+
+.tax-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.tax-facts {
+  list-style: disc;
+  padding-left: 20px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .tree-row {
