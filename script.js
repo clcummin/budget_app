@@ -777,23 +777,6 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     fields.appendChild(titleField);
     fields.appendChild(perPayField);
 
-    const readout = document.createElement("div");
-    readout.className = "line-item-readout";
-    const readoutLabel = document.createElement("span");
-    readoutLabel.className = "line-item-readout__label";
-    readoutLabel.textContent = "Per paycheck";
-    const readoutValue = document.createElement("span");
-    readoutValue.className = "line-item-readout__value";
-    readoutValue.textContent = hasValue ? currency(perPayNumeric) : "Enter amount";
-    const readoutSubtext = document.createElement("span");
-    readoutSubtext.className = "line-item-readout__subtext";
-    readoutSubtext.textContent = hasValue
-      ? `Monthly ${currency((perPayNumeric * periods) / 12)} • Annual ${currency(perPayNumeric * periods)}`
-      : "Enter an amount to see monthly & annual totals";
-    readout.appendChild(readoutLabel);
-    readout.appendChild(readoutValue);
-    readout.appendChild(readoutSubtext);
-
     const actions = document.createElement("div");
     actions.className = "line-item-actions";
     const remove = document.createElement("button");
@@ -805,7 +788,6 @@ const renderLineItemList = (items, containerId, periods, emptyText) => {
     actions.appendChild(remove);
 
     row.appendChild(fields);
-    row.appendChild(readout);
     row.appendChild(actions);
     container.appendChild(row);
   });
