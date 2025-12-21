@@ -51,7 +51,7 @@ const CA_BRACKETS_2025 = {
   ]
 };
 
-const CA_FILING_LABELS = {
+const FILING_STATUS_LABELS = {
   single: "Single / MFS",
   married: "Married / QSS",
   hoh: "Head of household"
@@ -228,6 +228,7 @@ const defaultState = {
   otherPretaxPerPay: 0,
   federalBracketOverride: null,
   federalRate: 0,
+  federalFilingStatus: "single",
   stateBracketOverride: null,
   stateFilingStatus: "single",
   stateRate: 0,
@@ -448,6 +449,7 @@ const loadState = () => {
   }
 
   const periods = Math.max(1, coerceNumber(merged.periodsPerYear) || 26);
+  merged.federalFilingStatus = sanitizeFilingStatus(parsed.federalFilingStatus ?? merged.federalFilingStatus);
   merged.stateFilingStatus = sanitizeFilingStatus(parsed.stateFilingStatus ?? merged.stateFilingStatus);
   const defaultStandardDeduction = getStandardDeductionForStatus(merged.federalFilingStatus);
   const hasCustomStandardDeduction =
@@ -718,6 +720,7 @@ const calculatePay = (state) => {
   const taxableIncome = Math.max(0, grossPay - pretax - standardDeductionPerPay);
   const annualTaxable = taxableIncome * periods;
 
+  const federalFilingStatus = sanitizeFilingStatus(state.federalFilingStatus);
   const bracketOverrideRate = coerceNumber(state.federalBracketOverride);
   const bracketOverrideActive = Number.isFinite(bracketOverrideRate) && bracketOverrideRate > 0;
   const overrideRateDecimal = bracketOverrideActive ? bracketOverrideRate / 100 : null;
@@ -794,6 +797,7 @@ const calculatePay = (state) => {
       usedFederalRate,
       expectedStateBracket,
       usedStateRate,
+      federalFilingStatus,
       stateFilingStatus: filingStatus,
       effectiveFederalRate: federalWithholding.effectiveRate,
       pretaxBreakdown: {
@@ -897,6 +901,7 @@ const renderTaxFields = (calculated) => {
   const { details } = calculated;
   const {
     expectedFederalBracket,
+    federalFilingStatus,
     usedFederalRate,
     federalFilingStatus,
     expectedStateBracket,
@@ -910,7 +915,7 @@ const renderTaxFields = (calculated) => {
   const stateBracketLabel = `${usedStateRate.toFixed(1)}% marginal (${rangeLabel(
     expectedStateBracket.lower,
     expectedStateBracket.upper
-  )}) (${CA_FILING_LABELS[sanitizeFilingStatus(stateFilingStatus)]})`;
+  )}) (${FILING_STATUS_LABELS[sanitizeFilingStatus(stateFilingStatus)]})`;
 
   const bracketField = document.querySelector('[data-output="federalBracket"]');
   if (bracketField) bracketField.textContent = bracketLabel;
