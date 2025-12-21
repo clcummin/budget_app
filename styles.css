@@ -1061,7 +1061,8 @@ p {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  z-index: 6;
+  z-index: 20;
+  isolation: isolate;
 }
 
 .info-icon::before {
@@ -1095,7 +1096,7 @@ p {
   transition: opacity 0.15s ease, transform 0.15s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   font-size: 14px;
-  z-index: 40;
+  z-index: 60;
 }
 
 .info-icon:hover::after,
