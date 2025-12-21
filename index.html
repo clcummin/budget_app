@@ -84,6 +84,10 @@
               <span>Standard deduction (annual)</span>
               <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" step="0.01" />
             </label>
+            <label class="field computed">
+              <span>Standard deduction (per paycheck)</span>
+              <input type="number" data-model="standardDeductionPerPay" inputmode="decimal" step="0.01" readonly />
+            </label>
             <label class="field entry">
               <span>Extra withholding (annual, W4)</span>
               <input type="number" data-model="w4ExtraAnnual" inputmode="decimal" step="0.01" />
@@ -165,8 +169,8 @@
             <label class="field entry">
               <span>Federal filing status</span>
               <select data-model="federalFilingStatus">
-                <option value="single">Single / Married filing separately</option>
-                <option value="married">Married filing jointly / QSS</option>
+                <option value="single">Single</option>
+                <option value="married">Married filing jointly</option>
                 <option value="hoh">Head of household</option>
               </select>
             </label>
@@ -177,6 +181,14 @@
                 <option value="married">Married filing jointly / QSS</option>
                 <option value="hoh">Head of household</option>
               </select>
+            </label>
+            <label class="field entry checkbox-field">
+              <span>W-4 Step 2 (multiple jobs checked)</span>
+              <input type="checkbox" data-model="w4MultipleJobs" />
+            </label>
+            <label class="field entry">
+              <span>W-4 Step 3 credits (annual)</span>
+              <input type="number" data-model="w4Step3Credits" inputmode="decimal" step="0.01" />
             </label>
             <label class="field computed">
               <span>Expected federal bracket</span>

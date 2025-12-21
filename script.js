@@ -7,6 +7,11 @@ const MEDICARE_SURTAX_THRESHOLDS = {
   married: 250000,
   hoh: 200000
 };
+const STANDARD_DEDUCTIONS_2025 = {
+  single: 15750,
+  married: 31500,
+  hoh: 23625
+};
 const MENTAL_HEALTH_SURCHARGE_RATE = 0.01;
 const MENTAL_HEALTH_SURCHARGE_THRESHOLD = 1000000;
 
@@ -68,18 +73,46 @@ const FEDERAL_BRACKETS_2025 = {
     { upTo: 207500, rate: 0.22 },
     { upTo: 396200, rate: 0.24 },
     { upTo: 503000, rate: 0.32 },
-    { upTo: 754600, rate: 0.35 },
+    { upTo: 1257700, rate: 0.35 },
     { upTo: Infinity, rate: 0.37 }
   ],
   hoh: [
-    { upTo: 17100, rate: 0.1 },
-    { upTo: 65150, rate: 0.12 },
-    { upTo: 103750, rate: 0.22 },
-    { upTo: 198100, rate: 0.24 },
-    { upTo: 251500, rate: 0.32 },
-    { upTo: 628850, rate: 0.35 },
+    { upTo: 17950, rate: 0.1 },
+    { upTo: 66500, rate: 0.12 },
+    { upTo: 106150, rate: 0.22 },
+    { upTo: 202300, rate: 0.24 },
+    { upTo: 255150, rate: 0.32 },
+    { upTo: 634300, rate: 0.35 },
     { upTo: Infinity, rate: 0.37 }
   ]
+};
+
+const FEDERAL_STANDARD_DEDUCTION_2025 = {
+  single: 15750,
+  married: 31500,
+  hoh: 23625
+};
+
+const PAY_FREQUENCIES = [
+  { key: "weekly", periods: 52 },
+  { key: "biweekly", periods: 26 },
+  { key: "semimonthly", periods: 24 },
+  { key: "monthly", periods: 12 },
+  { key: "quarterly", periods: 4 },
+  { key: "semiannual", periods: 2 },
+  { key: "annual", periods: 1 }
+];
+
+const scaleBrackets = (brackets, multiplier) =>
+  brackets.map((bracket) => ({
+    upTo: Number.isFinite(bracket.upTo) ? bracket.upTo * multiplier : Infinity,
+    rate: bracket.rate
+  }));
+
+const FEDERAL_BRACKETS_2025 = {
+  single: FEDERAL_BRACKETS_2025_SINGLE,
+  married: scaleBrackets(FEDERAL_BRACKETS_2025_SINGLE, 2),
+  hoh: scaleBrackets(FEDERAL_BRACKETS_2025_SINGLE, 1.5)
 };
 
 const defaultBudgetTree = [
@@ -180,6 +213,8 @@ const defaultState = {
   salaryPerPay: 0,
   periodsPerYear: 26,
   standardDeductionAnnual: 15750,
+  w4MultipleJobs: false,
+  w4Step3Credits: 0,
   w4ExtraAnnual: 0,
   w4ExtraPerPay: 0,
   k401Percent: 0,
@@ -285,6 +320,16 @@ const sanitizeTree = (nodes = []) =>
       };
     });
 
+const getStandardDeductionForStatus = (status) =>
+  STANDARD_DEDUCTIONS_2025[sanitizeFilingStatus(status)] ?? STANDARD_DEDUCTIONS_2025.single;
+
+const applyFederalStatusDefaults = (state, filingStatus) => {
+  const status = sanitizeFilingStatus(filingStatus);
+  state.federalFilingStatus = status;
+  state.standardDeductionAnnual = getStandardDeductionForStatus(status);
+  state.medicareSurtaxThreshold = MEDICARE_SURTAX_THRESHOLDS[status] ?? MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+};
+
 const sampleBudgetTree = [
   {
     type: "section",
@@ -340,9 +385,12 @@ const sampleBudgetTree = [
 
 const createSampleState = () => ({
   ...structuredClone(defaultState),
+  federalFilingStatus: "single",
   salaryAnnual: 145000,
   periodsPerYear: 26,
   standardDeductionAnnual: 15750,
+  w4MultipleJobs: false,
+  w4Step3Credits: 0,
   w4ExtraAnnual: 780,
   k401Percent: 8,
   hsaAnnual: 3600,
@@ -391,6 +439,7 @@ const loadState = () => {
   const parsed = JSON.parse(stored);
   const merged = { ...defaultState, ...parsed };
   merged.collapsedCards = { ...defaultState.collapsedCards, ...(parsed.collapsedCards || {}) };
+  merged.federalFilingStatus = sanitizeFilingStatus(parsed.federalFilingStatus ?? parsed.stateFilingStatus ?? merged.federalFilingStatus);
   if (Array.isArray(parsed.budgetTree)) {
     merged.budgetTree = sanitizeTree(parsed.budgetTree);
   } else if (Array.isArray(parsed.budget)) {
@@ -402,6 +451,16 @@ const loadState = () => {
   const periods = Math.max(1, coerceNumber(merged.periodsPerYear) || 26);
   merged.federalFilingStatus = sanitizeFilingStatus(parsed.federalFilingStatus ?? merged.federalFilingStatus);
   merged.stateFilingStatus = sanitizeFilingStatus(parsed.stateFilingStatus ?? merged.stateFilingStatus);
+  const defaultStandardDeduction = getStandardDeductionForStatus(merged.federalFilingStatus);
+  const hasCustomStandardDeduction =
+    Object.prototype.hasOwnProperty.call(parsed, "standardDeductionAnnual") && coerceNumber(parsed.standardDeductionAnnual) > 0;
+  if (!hasCustomStandardDeduction || merged.standardDeductionAnnual === defaultState.standardDeductionAnnual) {
+    merged.standardDeductionAnnual = defaultStandardDeduction;
+  }
+  if (!coerceNumber(merged.medicareSurtaxThreshold)) {
+    merged.medicareSurtaxThreshold =
+      MEDICARE_SURTAX_THRESHOLDS[merged.federalFilingStatus] ?? MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+  }
   merged.afterTaxDeductions = sanitizeLineItems(parsed.afterTaxDeductions);
   if (merged.afterTaxDeductions.length === 0) {
     const legacy = [];
@@ -447,34 +506,39 @@ const saveState = (state) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
-const getFederalBracketsForStatus = (status) =>
-  FEDERAL_BRACKETS_2025[sanitizeFilingStatus(status)] ?? FEDERAL_BRACKETS_2025.single;
+const getFederalBrackets = (filingStatus) => FEDERAL_BRACKETS_2025[sanitizeFilingStatus(filingStatus)] || FEDERAL_BRACKETS_2025.single;
 
-const calculateFederalAnnualTax = (annualTaxableIncome, flatRateOverride, filingStatus) => {
+const calculateFederalAnnualTax = (annualTaxableIncome, filingStatus, flatRateOverride) => {
   if (Number.isFinite(flatRateOverride) && flatRateOverride > 0) {
-    return annualTaxableIncome * flatRateOverride;
+    return { tax: annualTaxableIncome * flatRateOverride, bracket: { lower: 0, upper: Infinity, rate: flatRateOverride } };
   }
+
+  const brackets = getFederalBrackets(filingStatus);
   let tax = 0;
   let lowerBound = 0;
+  let usedBracket = { lower: 0, upper: Infinity, rate: 0 };
 
-  const brackets = getFederalBracketsForStatus(filingStatus);
   for (const bracket of brackets) {
     const upper = bracket.upTo;
     const rate = bracket.rate;
     const taxableInBracket = Math.min(annualTaxableIncome, upper) - lowerBound;
     if (taxableInBracket <= 0) break;
     tax += taxableInBracket * rate;
-    if (annualTaxableIncome <= upper) break;
+    if (annualTaxableIncome <= upper) {
+      usedBracket = { lower: lowerBound, upper, rate };
+      break;
+    }
     lowerBound = upper;
+    usedBracket = { lower: lowerBound, upper, rate };
   }
 
-  return tax;
+  return { tax, bracket: usedBracket };
 };
 
 const findFederalBracket = (annualTaxableIncome, filingStatus) => {
+  const brackets = getFederalBrackets(filingStatus);
   let lowerBound = 0;
 
-  const brackets = getFederalBracketsForStatus(filingStatus);
   for (const bracket of brackets) {
     const upper = bracket.upTo;
     if (annualTaxableIncome <= upper) {
@@ -484,6 +548,45 @@ const findFederalBracket = (annualTaxableIncome, filingStatus) => {
   }
 
   return { lower: 0, upper: Infinity, rate: 0 };
+};
+
+const calculateFederalWithholding = ({
+  taxableWagesPerPay,
+  taxableIncomeAfterDeductions,
+  periods,
+  filingStatus,
+  standardDeductionAnnual,
+  flatRateOverride,
+  extraPercentRate,
+  extraWithholdingPerPay,
+  step3CreditsAnnual,
+  multipleJobs
+}) => {
+  const frequencyMultiplier = multipleJobs ? 2 : 1;
+  const adjustedPerPay = taxableWagesPerPay * frequencyMultiplier;
+  const annualizedWages = adjustedPerPay * periods;
+  const standardDeduction = standardDeductionAnnual || FEDERAL_STANDARD_DEDUCTION_2025[sanitizeFilingStatus(filingStatus)] || 0;
+  const annualTaxable = Math.max(0, annualizedWages - standardDeduction);
+
+  const { tax: annualTax, bracket } = calculateFederalAnnualTax(annualTaxable, filingStatus, flatRateOverride);
+  const withholdingBeforeCredits = (annualTax / periods) / frequencyMultiplier;
+
+  const step3CreditPerPay = (coerceNumber(step3CreditsAnnual) || 0) / periods;
+  const withholdingAfterCredits = Math.max(0, withholdingBeforeCredits - step3CreditPerPay);
+  const extraPercentAmount =
+    Math.max(0, taxableIncomeAfterDeductions ?? taxableWagesPerPay) * (coerceNumber(extraPercentRate) / 100);
+  const extraFixedAmount = coerceNumber(extraWithholdingPerPay);
+  const totalPerPay = withholdingAfterCredits + extraPercentAmount + extraFixedAmount;
+
+  return {
+    perPay: totalPerPay,
+    basePerPay: withholdingBeforeCredits,
+    creditPerPay: step3CreditPerPay,
+    extraPercentAmount,
+    extraFixedAmount,
+    bracket,
+    effectiveRate: annualTaxable > 0 ? (annualTax / annualTaxable) * 100 : 0
+  };
 };
 
 const getStateBracketsForStatus = (status) => CA_BRACKETS_2025[sanitizeFilingStatus(status)] ?? CA_BRACKETS_2025.single;
@@ -544,6 +647,7 @@ const recalcDerivedFields = (state) => {
   const pairs = [
     ["salaryAnnual", "salaryPerPay"],
     ["w4ExtraAnnual", "w4ExtraPerPay"],
+    ["standardDeductionAnnual", "standardDeductionPerPay"],
     ["hsaAnnual", "hsaPerPay"],
     ["dentalAnnual", "dentalPerPay"],
     ["medicalAnnual", "medicalPerPay"],
@@ -580,7 +684,11 @@ const updateInputsFromState = (state, options = {}) => {
     if (!(key in state)) return;
     const value = state[key];
     if (skipActive && active === input && !input.readOnly) return;
-    input.value = value ?? "";
+    if (input.type === "checkbox") {
+      input.checked = Boolean(value);
+    } else {
+      input.value = value ?? "";
+    }
   });
 };
 
@@ -588,6 +696,7 @@ const calculatePay = (state) => {
   const periods = Math.max(1, coerceNumber(state.periodsPerYear));
   const grossAnnual = Math.max(0, coerceNumber(state.salaryAnnual) || coerceNumber(state.salaryPerPay) * periods);
   const grossPay = grossAnnual / periods;
+  const federalFilingStatus = sanitizeFilingStatus(state.federalFilingStatus ?? state.stateFilingStatus);
 
   const pretaxFrom401k = grossPay * (coerceNumber(state.k401Percent) / 100);
   const hsaAnnual = annualFromState(state, "hsaAnnual", "hsaPerPay", periods);
@@ -604,32 +713,42 @@ const calculatePay = (state) => {
   const payrollTaxableIncome = Math.max(0, grossPay - pretax);
   const annualPayrollTaxable = payrollTaxableIncome * periods;
 
-  const standardDeductionPerPay = coerceNumber(state.standardDeductionAnnual) / periods;
+  const filingStatus = sanitizeFilingStatus(state.stateFilingStatus);
+  const standardDeductionAnnual =
+    coerceNumber(state.standardDeductionAnnual) || FEDERAL_STANDARD_DEDUCTION_2025[filingStatus] || 0;
+  const standardDeductionPerPay = standardDeductionAnnual / periods;
   const taxableIncome = Math.max(0, grossPay - pretax - standardDeductionPerPay);
   const annualTaxable = taxableIncome * periods;
 
   const federalFilingStatus = sanitizeFilingStatus(state.federalFilingStatus);
   const bracketOverrideRate = coerceNumber(state.federalBracketOverride);
   const bracketOverrideActive = Number.isFinite(bracketOverrideRate) && bracketOverrideRate > 0;
-  const expectedFederalBracket = findFederalBracket(annualTaxable, federalFilingStatus);
   const overrideRateDecimal = bracketOverrideActive ? bracketOverrideRate / 100 : null;
-  const usedFederalRate = (overrideRateDecimal ?? expectedFederalBracket.rate) * 100;
 
-  const federalTaxAnnual = calculateFederalAnnualTax(annualTaxable, overrideRateDecimal, federalFilingStatus);
-  const federalTaxFromPercent = taxableIncome * (coerceNumber(state.federalRate) / 100);
   const w4ExtraAnnual = annualFromState(state, "w4ExtraAnnual", "w4ExtraPerPay", periods);
-  const federalFromBrackets = federalTaxAnnual / periods;
-  const federalExtraPercent = federalTaxFromPercent;
-  const federalExtraWithholding = w4ExtraAnnual / periods;
-  const federalTax = federalFromBrackets + federalExtraPercent + federalExtraWithholding;
+  const w4Step3Credits = coerceNumber(state.w4Step3Credits);
+  const expectedFederalBracket = findFederalBracket(annualTaxable, filingStatus);
+  const federalWithholding = calculateFederalWithholding({
+    taxableWagesPerPay: payrollTaxableIncome,
+    taxableIncomeAfterDeductions: taxableIncome,
+    periods,
+    filingStatus,
+    standardDeductionAnnual,
+    flatRateOverride: overrideRateDecimal,
+    extraPercentRate: coerceNumber(state.federalRate),
+    extraWithholdingPerPay: w4ExtraAnnual / periods,
+    step3CreditsAnnual: w4Step3Credits,
+    multipleJobs: Boolean(state.w4MultipleJobs)
+  });
+  const usedFederalRate = (overrideRateDecimal ?? expectedFederalBracket.rate) * 100;
+  const federalTax = federalWithholding.perPay;
 
-  const filingStatus = sanitizeFilingStatus(state.stateFilingStatus);
   const stateBracketOverrideRate = coerceNumber(state.stateBracketOverride);
   const stateOverrideActive = Number.isFinite(stateBracketOverrideRate) && stateBracketOverrideRate > 0;
-  const expectedStateBracket = findStateBracket(annualTaxable, filingStatus);
+  const expectedStateBracket = findStateBracket(annualTaxable, stateFilingStatus);
   const stateOverrideDecimal = stateOverrideActive ? stateBracketOverrideRate / 100 : null;
   const usedStateRate = (stateOverrideDecimal ?? expectedStateBracket.rate) * 100;
-  const stateTaxAnnuals = calculateStateAnnualTax(annualTaxable, stateOverrideDecimal, filingStatus);
+  const stateTaxAnnuals = calculateStateAnnualTax(annualTaxable, stateOverrideDecimal, stateFilingStatus);
   const stateExtraAnnual = annualTaxable * (coerceNumber(state.stateRate) / 100);
   const stateTaxBase = stateTaxAnnuals.base / periods;
   const stateMentalHealth = stateTaxAnnuals.surcharge / periods;
@@ -641,7 +760,8 @@ const calculatePay = (state) => {
     periods;
   const medicareTax = (annualPayrollTaxable * (coerceNumber(state.medicareRate) / 100)) / periods;
   const medicareSurtaxRate = coerceNumber(state.medicareSurtaxRate) / 100;
-  const defaultSurtaxThreshold = MEDICARE_SURTAX_THRESHOLDS[filingStatus] ?? MEDICARE_SURTAX_DEFAULT_THRESHOLD;
+  const defaultSurtaxThreshold =
+    MEDICARE_SURTAX_THRESHOLDS[federalFilingStatus] ?? MEDICARE_SURTAX_DEFAULT_THRESHOLD;
   const medicareSurtaxThreshold =
     coerceNumber(state.medicareSurtaxThreshold) || defaultSurtaxThreshold || MEDICARE_SURTAX_DEFAULT_THRESHOLD;
   const medicareSurtaxAnnual = Math.max(0, annualPayrollTaxable - medicareSurtaxThreshold) * medicareSurtaxRate;
@@ -671,7 +791,7 @@ const calculatePay = (state) => {
     net: bundle(netPay),
     details: {
       grossAnnual,
-      standardDeductionAnnual: coerceNumber(state.standardDeductionAnnual),
+      standardDeductionAnnual,
       annualTaxable,
       expectedFederalBracket,
       usedFederalRate,
@@ -679,10 +799,7 @@ const calculatePay = (state) => {
       usedStateRate,
       federalFilingStatus,
       stateFilingStatus: filingStatus,
-      effectiveFederalRate:
-        annualTaxable > 0
-          ? (calculateFederalAnnualTax(annualTaxable, overrideRateDecimal, federalFilingStatus) / annualTaxable) * 100
-          : 0,
+      effectiveFederalRate: federalWithholding.effectiveRate,
       pretaxBreakdown: {
         retirement401k: bundle(pretaxFrom401k),
         hsa: bundle(hsaPerPay),
@@ -697,9 +814,10 @@ const calculatePay = (state) => {
         items: state.additionalIncomeItems.map((item) => ({ label: item.title, bundle: bundle(coerceNumber(item.perPay)) }))
       },
       taxBreakdown: {
-        federalBracket: bundle(federalFromBrackets),
-        federalExtraPercent: bundle(federalExtraPercent),
-        federalW4: bundle(federalExtraWithholding),
+        federalBracket: bundle(federalWithholding.basePerPay),
+        federalCredits: bundle(-federalWithholding.creditPerPay),
+        federalExtraPercent: bundle(federalWithholding.extraPercentAmount),
+        federalW4: bundle(federalWithholding.extraFixedAmount),
         stateBase: bundle(stateTaxBase),
         stateMentalHealth: bundle(stateMentalHealth),
         stateExtra: bundle(stateExtra),
@@ -741,6 +859,7 @@ const renderSummary = (calculated) => {
     calculated.details.taxBreakdown,
     [
       ["federalBracket", "Federal (marginal)"],
+      ["federalCredits", "Federal Step 3 credit"],
       ["federalExtraPercent", "Federal extra %"],
       ["federalW4", "Federal W-4 extra"],
       ["stateBase", "CA base tax"],
@@ -784,6 +903,7 @@ const renderTaxFields = (calculated) => {
     expectedFederalBracket,
     federalFilingStatus,
     usedFederalRate,
+    federalFilingStatus,
     expectedStateBracket,
     usedStateRate,
     stateFilingStatus
@@ -1248,16 +1368,17 @@ const updatePeekBadges = (state, calculations, totals, targets) => {
 
   const taxesPeek = document.getElementById("peek-taxes");
   if (taxesPeek) {
-    const filingLabel = FILING_STATUS_LABELS[sanitizeFilingStatus(details.stateFilingStatus)];
-    const federalFilingLabel = FILING_STATUS_LABELS[sanitizeFilingStatus(details.federalFilingStatus)];
+    const filingLabel = CA_FILING_LABELS[sanitizeFilingStatus(details.stateFilingStatus)];
+    const federalStatusLabel = FILING_STATUS_LABELS[sanitizeFilingStatus(details.federalFilingStatus)];
     const federalLabel = `${details.usedFederalRate.toFixed(1)}% fed (${rangeLabel(
       details.expectedFederalBracket.lower,
       details.expectedFederalBracket.upper
-    )}) (${federalFilingLabel})`;
+    )}) (${federalStatusLabel})`;
     const stateLabel = `${details.usedStateRate.toFixed(1)}% CA (${filingLabel})`;
     taxesPeek.innerHTML = `
       <span>${federalLabel}</span>
       <span>${stateLabel}</span>
+      <span>Std deduction: ${currency(details.standardDeductionPerPay)} / pay</span>
       <span>Withheld: ${currency(calculations.taxes.pay)} / pay · ${currency(calculations.taxes.year)} / yr</span>
     `;
   }
@@ -1589,20 +1710,32 @@ const attachModelInputs = (state) => {
   inputs.forEach((input) => {
     const key = input.dataset.model;
     if (!(key in state)) return;
-    input.value = state[key] ?? "";
+    if (input.type === "checkbox") {
+      input.checked = Boolean(state[key]);
+    } else {
+      input.value = state[key] ?? "";
+    }
 
     if (input.readOnly) return;
 
-    input.addEventListener("input", () => {
-      const raw = input.value;
-      const shouldCoerce = input.tagName !== "SELECT";
-      const value = raw === "" ? "" : shouldCoerce ? coerceNumber(raw) : raw;
-      state[key] = value;
+    const handler = () => {
+      if (input.type === "checkbox") {
+        state[key] = input.checked;
+      } else if (input.tagName === "SELECT") {
+        state[key] = input.value;
+      } else {
+        const raw = input.value;
+        const numeric = coerceNumber(raw);
+        state[key] = raw === "" ? "" : numeric;
+      }
       recalcDerivedFields(state);
       saveState(state);
       updateInputsFromState(state, { skipActive: true });
       refreshBudget(state);
-    });
+    };
+
+    input.addEventListener("input", handler);
+    input.addEventListener("change", handler);
   });
 };
 
