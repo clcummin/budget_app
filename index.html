@@ -89,6 +89,10 @@
               <span>Standard deduction (annual)</span>
               <input type="number" data-model="standardDeductionAnnual" inputmode="decimal" step="0.01" readonly />
             </label>
+            <label class="field computed">
+              <span>Standard deduction (per paycheck)</span>
+              <input type="number" data-model="standardDeductionPerPay" inputmode="decimal" step="0.01" readonly />
+            </label>
             <label class="field entry">
               <span>Extra withholding (per paycheck, W4)</span>
               <input type="number" data-model="w4ExtraPerPay" inputmode="decimal" step="0.01" />
@@ -168,6 +172,14 @@
         </div>
         <div class="card-body">
           <div class="grid two tax-summary-grid">
+            <label class="field entry">
+              <span>Federal filing status</span>
+              <select data-model="federalFilingStatus">
+                <option value="single">Single</option>
+                <option value="married">Married filing jointly</option>
+                <option value="hoh">Head of household</option>
+              </select>
+            </label>
             <label class="field entry">
               <span>CA filing status</span>
               <select data-model="stateFilingStatus">
