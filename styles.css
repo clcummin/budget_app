@@ -737,7 +737,7 @@ p {
 
 .line-item-actions {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
 }
 
@@ -747,12 +747,6 @@ p {
 
 .value-field {
   position: relative;
-}
-
-.field-hint {
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: -2px;
 }
 
 .line-item-input.entered:not(:focus) {
@@ -880,6 +874,18 @@ p {
 .icon-button.toggle {
   font-size: 14px;
   line-height: 1;
+}
+
+.icon-button--compact {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.icon-button.danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
 }
 
 .total-pill {
